@@ -32,20 +32,20 @@ export function getGoogleCalendarUrl(params: {
 // ==========================================
 export function getChatSummaryText(item: MeetingRecord): string {
   if (!item.minutes) return "";
+  const nextText = item.minutes.next_steps || item.minutes.next_agenda || "";
   return [
-    `📢 【${item.dept}】${item.meetingType} 議事録サマリー`,
+    `📢 【${item.dept}】${item.meetingType} 議事録`,
     `📅 開催日: ${formatJPDate(item.meetingDate)}`,
     `👥 参加者: ${item.participants || "（未指定）"}`,
     "",
-    "📌 【全体要約】",
+    "📌 【会議要約】",
     item.minutes.summary,
     "",
-    "✨ 【決定事項・アクションプラン】",
+    "✨ 【決定事項・ToDo】",
     item.minutes.action_plans,
     "",
-    "🎉 【次回検討事項】",
-    item.minutes.next_agenda,
-  ].join("\n");
+    nextText ? `📅 【次回検討・特記事項】\n${nextText}` : "",
+  ].filter(Boolean).join("\n");
 }
 
 // ==========================================
@@ -101,24 +101,21 @@ export async function downloadMeetingDocx(item: MeetingRecord): Promise<void> {
     );
   }
 
-  // 2. 議事録セクション
+  // 2. 議事録セクション（4セクション）
   if (item.minutes) {
+    const discText = item.minutes.discussions || [item.minutes.agenda_items, item.minutes.key_discussions].filter(Boolean).join("\n\n");
+    const nextText = item.minutes.next_steps || [item.minutes.culture_notes, item.minutes.next_agenda, item.minutes.facilitator_feedback].filter(Boolean).join("\n\n");
+
     children.push(
       new Paragraph({ text: "【会議議事録】", heading: HeadingLevel.HEADING_1 }),
-      new Paragraph({ text: "■ 全体要約", heading: HeadingLevel.HEADING_2 }),
+      new Paragraph({ text: "■ 1. 会議要約", heading: HeadingLevel.HEADING_2 }),
       new Paragraph({ text: item.minutes.summary || "（記載なし）" }),
-      new Paragraph({ text: "■ 議題と振り返り", heading: HeadingLevel.HEADING_2 }),
-      new Paragraph({ text: item.minutes.agenda_items || "（記載なし）" }),
-      new Paragraph({ text: "■ 主な議論・発言内容", heading: HeadingLevel.HEADING_2 }),
-      new Paragraph({ text: item.minutes.key_discussions || "（記載なし）" }),
-      new Paragraph({ text: "■ 決定事項・アクションプラン", heading: HeadingLevel.HEADING_2 }),
+      new Paragraph({ text: "■ 2. 議論内容・経緯", heading: HeadingLevel.HEADING_2 }),
+      new Paragraph({ text: discText || "（記載なし）" }),
+      new Paragraph({ text: "■ 3. 決定事項・ToDo（担当・期日）", heading: HeadingLevel.HEADING_2 }),
       new Paragraph({ text: item.minutes.action_plans || "（記載なし）" }),
-      new Paragraph({ text: "■ 組織文化・理念の気づき", heading: HeadingLevel.HEADING_2 }),
-      new Paragraph({ text: item.minutes.culture_notes || "（記載なし）" }),
-      new Paragraph({ text: "■ 次回の検討事項・宿題", heading: HeadingLevel.HEADING_2 }),
-      new Paragraph({ text: item.minutes.next_agenda || "（記載なし）" }),
-      new Paragraph({ text: "■ AIファシリテーター評価", heading: HeadingLevel.HEADING_2 }),
-      new Paragraph({ text: item.minutes.facilitator_feedback || "（記載なし）" })
+      new Paragraph({ text: "■ 4. 次回検討・特記事項", heading: HeadingLevel.HEADING_2 }),
+      new Paragraph({ text: nextText || "（記載なし）" })
     );
   }
 
@@ -139,33 +136,27 @@ export async function downloadMeetingDocx(item: MeetingRecord): Promise<void> {
 
 export function getMinutesPlainText(item: MeetingRecord): string {
   if (!item.minutes) return "";
+  const discText = item.minutes.discussions || [item.minutes.agenda_items, item.minutes.key_discussions].filter(Boolean).join("\n\n");
+  const nextText = item.minutes.next_steps || [item.minutes.culture_notes, item.minutes.next_agenda, item.minutes.facilitator_feedback].filter(Boolean).join("\n\n");
+
   return [
     `【COOPs 議事録】`,
     `会議日: ${formatJPDate(item.meetingDate)}`,
     `部署: ${item.dept} / 種別: ${item.meetingType}`,
     `参加者: ${item.participants || "（未指定）"}`,
     "",
-    "📌 【全体要約】",
+    "📌 【1. 会議要約】",
     item.minutes.summary,
     "",
-    "🔎 【議題と振り返り】",
-    item.minutes.agenda_items,
+    "💡 【2. 議論内容・経緯】",
+    discText,
     "",
-    "💡 【主な議論・発言】",
-    item.minutes.key_discussions,
-    "",
-    "✨ 【決定事項・アクションプラン】",
+    "✨ 【3. 決定事項・ToDo（担当・期日）】",
     item.minutes.action_plans,
     "",
-    "🍀 【組織文化・理念】",
-    item.minutes.culture_notes,
-    "",
-    "🎉 【次回の検討事項】",
-    item.minutes.next_agenda,
-    "",
-    "🌌 【AI評価・フィードバック】",
-    item.minutes.facilitator_feedback,
-  ].join("\n");
+    "📅 【4. 次回検討・特記事項】",
+    nextText,
+  ].filter(Boolean).join("\n");
 }
 
 export function getAgendaPlainText(item: MeetingRecord): string {

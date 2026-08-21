@@ -102,30 +102,24 @@ export async function generateMinutesAI(params: {
       responseSchema: {
         type: SchemaType.OBJECT,
         properties: {
-          transcript: { type: SchemaType.STRING, description: "音声または画像がある場合の要点テキスト起こしまたは全文" },
-          summary: { type: SchemaType.STRING, description: "会議全体の要約（500〜2000文字）" },
-          agenda_items: { type: SchemaType.STRING, description: "議題と振り返り（箇条書き・アジェンダとの対応）" },
-          key_discussions: { type: SchemaType.STRING, description: "主な議論・発言（発言者：内容の形式）" },
-          action_plans: { type: SchemaType.STRING, description: "決定事項・アクションプラン（担当者・期日を明記）" },
-          culture_notes: { type: SchemaType.STRING, description: "組織文化・理念・チーム運営に関する発言や気づき" },
-          next_agenda: { type: SchemaType.STRING, description: "次回の検討事項・宿題" },
-          facilitator_feedback: { type: SchemaType.STRING, description: "AIファシリテーターとしての評価（良かった点2つ・改善提案2つ）" },
+          transcript: { type: SchemaType.STRING, description: "音声または画像がある場合の要点テキスト起こし" },
+          summary: { type: SchemaType.STRING, description: "1. 会議要約（会議の目的と決定事項のハイライトを2〜3文で簡潔に）" },
+          discussions: { type: SchemaType.STRING, description: "2. 議論内容・経緯（各議題ごとのスタッフ発言や議論の流れを分かりやすく箇条書き）" },
+          action_plans: { type: SchemaType.STRING, description: "3. 決定事項・ToDo（【誰が】【いつまでに】【何をするか】を明確に記載）" },
+          next_steps: { type: SchemaType.STRING, description: "4. 次回検討・特記事項（次回への宿題、理念の気づき、AIからのワンポイント助言）" },
         },
         required: [
           "summary",
-          "agenda_items",
-          "key_discussions",
+          "discussions",
           "action_plans",
-          "culture_notes",
-          "next_agenda",
-          "facilitator_feedback",
+          "next_steps",
         ],
       },
     },
   });
 
   const prompt = `あなたは介護事業所向けのプロフェッショナル会議ファシリテーターAIです。
-提供された情報（テキストメモ、音声データ、添付画像・ホワイトボード写真等）をもとに、実務に直結する明瞭で詳細な議事録を作成してください。
+提供された情報（テキストメモ、音声データ、添付画像・ホワイトボード写真等）をもとに、現場スタッフが見やすく実務に直結する【4セクション構成】の明瞭な議事録を作成してください。
 
 【会議情報】
 - 会議日: ${params.meetingDate || "未記載"}
@@ -137,14 +131,15 @@ ${params.agendaBody ? `\n【事前アジェンダ】\n${params.agendaBody}` : ""
 【テキストメモ・入力データ】
 ${params.inputText || "（テキスト入力なし：添付音声/画像より生成）"}
 
-【作成方針】
-1. 音声、テキスト、添付画像（ホワイトボードや手書きメモ、配布資料）の情報を詳細まで読み込み、文字を正確に認識して議論の経緯と結論を記録してください。
-2. アジェンダがある場合は各議題に対応した議論・結論を整理してください。アジェンダ外の議論も客観的に整理してください。
-3. 発言者が特定できる場合は「氏名：〜」の形式で記録してください。
-4. アクションプランには必ず「担当者」と「期日（または目安時期）」を明記してください。
-5. 事業所運営やチームワーク、介護理念（利用者本位、安心・安全、スタッフ連携）に関する気づきを「組織文化・理念」に盛り込んでください。
-6. 会議に出ていないスタッフが見ても、なぜその決定になったのかが明確に伝わる丁寧な文章にしてください。
-7. AI評価では、会議の進行・発言バランス・決定の質について具体的なフィードバックを提示してください。`;
+【4セクションの作成方針】
+1. 会議要約（summary）:
+   - 会議全体の結論・要点を2〜3文で簡潔にまとめてください。
+2. 議論内容・経緯（discussions）:
+   - 議題ごとに話し合われた内容やスタッフの発言（「氏名：〜」）、検討の経緯を整理してください。
+3. 決定事項・ToDo（action_plans）:
+   - 【担当者】と【期日・時期】を必ず明記し、誰が何をすべきか一目でわかるようにしてください。
+4. 次回検討・特記事項（next_steps）:
+   - 次回までに持ち越す課題や宿題、介護理念（利用者本位・安全管理等）の実践ポイント、AIからのワンポイント改善助言をコンパクトにまとめてください。`;
 
   const contents: any[] = [];
 

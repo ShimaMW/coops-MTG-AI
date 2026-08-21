@@ -22,13 +22,16 @@ export interface MinutesDetails {
   inputText?: string;
   audioFileName?: string;
   transcript?: string;
-  summary: string;
-  agenda_items: string;
-  key_discussions: string;
-  action_plans: string;
-  culture_notes: string;
-  next_agenda: string;
-  facilitator_feedback: string;
+  summary: string; // 1. 会議要約
+  discussions: string; // 2. 議論内容・経緯
+  action_plans: string; // 3. 決定事項・ToDo（担当・期日）
+  next_steps: string; // 4. 次回検討・特記事項
+  // 互換性維持
+  agenda_items?: string;
+  key_discussions?: string;
+  culture_notes?: string;
+  next_agenda?: string;
+  facilitator_feedback?: string;
 }
 
 // アジェンダと議事録が紐づく統合レコード（事業所会議特化）

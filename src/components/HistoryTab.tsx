@@ -272,52 +272,43 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
             <div className="p-6 overflow-y-auto space-y-4 text-xs md:text-sm leading-relaxed text-slate-800">
               {modalTab === "minutes" && selectedRecord.minutes && (
                 <>
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <div className="font-bold text-clover-800 mb-1">📌 全体要約</div>
+                  {/* 1. 会議要約 */}
+                  <div className="p-4 bg-clover-50/70 rounded-xl border border-clover-200">
+                    <div className="font-bold text-clover-900 mb-1">📌 1. 会議要約</div>
                     <p className="whitespace-pre-wrap">{selectedRecord.minutes.summary}</p>
                   </div>
 
-                  {selectedRecord.minutes.agenda_items && (
-                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                      <div className="font-bold text-slate-800 mb-1">🔎 議題と振り返り</div>
-                      <p className="whitespace-pre-wrap font-mono">{selectedRecord.minutes.agenda_items}</p>
-                    </div>
-                  )}
+                  {/* 2. 議論内容・経緯 */}
+                  <div className="p-4 bg-blue-50/60 rounded-xl border border-blue-200">
+                    <div className="font-bold text-blue-900 mb-1">💡 2. 議論内容・経緯</div>
+                    <p className="whitespace-pre-wrap font-mono">
+                      {selectedRecord.minutes.discussions ||
+                        [selectedRecord.minutes.agenda_items, selectedRecord.minutes.key_discussions]
+                          .filter(Boolean)
+                          .join("\n\n")}
+                    </p>
+                  </div>
 
-                  {selectedRecord.minutes.key_discussions && (
-                    <div className="p-4 bg-blue-50/60 rounded-xl border border-blue-200">
-                      <div className="font-bold text-blue-900 mb-1">💡 主な議論・発言内容</div>
-                      <p className="whitespace-pre-wrap font-mono">{selectedRecord.minutes.key_discussions}</p>
-                    </div>
-                  )}
+                  {/* 3. 決定事項・ToDo */}
+                  <div className="p-4 bg-emerald-50/60 rounded-xl border border-emerald-200">
+                    <div className="font-bold text-emerald-900 mb-1">✨ 3. 決定事項・ToDo（担当・期日）</div>
+                    <p className="whitespace-pre-wrap font-mono">{selectedRecord.minutes.action_plans}</p>
+                  </div>
 
-                  {selectedRecord.minutes.action_plans && (
-                    <div className="p-4 bg-emerald-50/60 rounded-xl border border-emerald-200">
-                      <div className="font-bold text-emerald-900 mb-1">✨ 決定事項・アクションプラン</div>
-                      <p className="whitespace-pre-wrap font-mono">{selectedRecord.minutes.action_plans}</p>
-                    </div>
-                  )}
-
-                  {selectedRecord.minutes.culture_notes && (
-                    <div className="p-4 bg-purple-50/60 rounded-xl border border-purple-200">
-                      <div className="font-bold text-purple-900 mb-1">🍀 組織文化・理念の気づき</div>
-                      <p className="whitespace-pre-wrap">{selectedRecord.minutes.culture_notes}</p>
-                    </div>
-                  )}
-
-                  {selectedRecord.minutes.next_agenda && (
-                    <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-200">
-                      <div className="font-bold text-amber-900 mb-1">🎉 次回の検討事項</div>
-                      <p className="whitespace-pre-wrap">{selectedRecord.minutes.next_agenda}</p>
-                    </div>
-                  )}
-
-                  {selectedRecord.minutes.facilitator_feedback && (
-                    <div className="p-4 bg-slate-100 rounded-xl border border-slate-300">
-                      <div className="font-bold text-slate-900 mb-1">🌌 AIファシリテーター評価</div>
-                      <p className="whitespace-pre-wrap">{selectedRecord.minutes.facilitator_feedback}</p>
-                    </div>
-                  )}
+                  {/* 4. 次回検討・特記事項 */}
+                  <div className="p-4 bg-purple-50/60 rounded-xl border border-purple-200">
+                    <div className="font-bold text-purple-900 mb-1">📅 4. 次回検討・特記事項</div>
+                    <p className="whitespace-pre-wrap">
+                      {selectedRecord.minutes.next_steps ||
+                        [
+                          selectedRecord.minutes.culture_notes,
+                          selectedRecord.minutes.next_agenda,
+                          selectedRecord.minutes.facilitator_feedback,
+                        ]
+                          .filter(Boolean)
+                          .join("\n\n")}
+                    </p>
+                  </div>
                 </>
               )}
 

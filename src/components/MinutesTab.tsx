@@ -7,7 +7,6 @@ import { downloadMeetingDocx, getMinutesPlainText, getChatSummaryText, formatJPD
 import { AudioRecorder } from "./AudioRecorder";
 import { MediaUploader } from "./AudioUploader";
 import {
-  FileText,
   Sparkles,
   Save,
   Download,
@@ -19,14 +18,12 @@ import {
   CheckCircle2,
   ListTodo,
   MessageSquare,
-  HelpCircle,
-  Lightbulb,
-  Heart,
   Calendar,
   Share2,
   Mic,
   Image as ImageIcon,
   Sliders,
+  FileText,
 } from "lucide-react";
 
 interface MinutesTabProps {
@@ -287,6 +284,10 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
   ];
 
   const agendaRecords = meetingRecords.filter((r) => r.agenda);
+
+  // 互換性ヘルパー
+  const displayDiscussions = minutesResult?.discussions || [minutesResult?.agenda_items, minutesResult?.key_discussions].filter(Boolean).join("\n\n");
+  const displayNextSteps = minutesResult?.next_steps || [minutesResult?.culture_notes, minutesResult?.next_agenda, minutesResult?.facilitator_feedback].filter(Boolean).join("\n\n");
 
   return (
     <div className="space-y-6">
@@ -674,7 +675,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
         </div>
       )}
 
-      {/* ── STEP 4: 議事録完成 & 編集・出力 ── */}
+      {/* ── STEP 4: 議事録完成 & 編集・出力（洗練された4セクション構成） ── */}
       {step === 4 && minutesResult && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
@@ -704,51 +705,40 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             </button>
           </div>
 
-          {/* 1. 全体要約 */}
+          {/* 1. 会議要約 */}
           <div className="p-4 bg-clover-50/70 border border-clover-200 rounded-xl">
-            <label className="block text-xs font-bold text-clover-800 mb-1 flex items-center gap-1">
-              📌 全体要約
+            <label className="block text-xs font-bold text-clover-900 mb-1.5 flex items-center gap-1.5">
+              📌 1. 会議要約（ハイライト）
             </label>
             <textarea
-              rows={4}
+              rows={3}
               value={minutesResult.summary || ""}
               onChange={(e) => setMinutesResult({ ...minutesResult, summary: e.target.value })}
               className="w-full bg-white border border-clover-200 rounded-lg p-3 text-xs md:text-sm outline-none focus:ring-2 focus:ring-clover-500/20 leading-relaxed"
             />
           </div>
 
-          {/* 2. 議題 */}
-          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-            <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center gap-1">
-              🔎 議題と振り返り
-            </label>
-            <textarea
-              rows={4}
-              value={minutesResult.agenda_items || ""}
-              onChange={(e) => setMinutesResult({ ...minutesResult, agenda_items: e.target.value })}
-              className="w-full bg-white border border-slate-200 rounded-lg p-3 text-xs md:text-sm outline-none focus:ring-2 focus:ring-clover-500/20 leading-relaxed font-mono"
-            />
-          </div>
-
-          {/* 3. 主な議論 */}
+          {/* 2. 議論内容・経緯 */}
           <div className="p-4 bg-blue-50/70 border border-blue-200 rounded-xl">
-            <label className="block text-xs font-bold text-blue-800 mb-1 flex items-center gap-1">
-              <MessageSquare className="w-3.5 h-3.5" /> 💡 主な議論・発言内容（発言者：〜）
+            <label className="block text-xs font-bold text-blue-900 mb-1.5 flex items-center gap-1.5">
+              <MessageSquare className="w-3.5 h-3.5 text-blue-700" />
+              💡 2. 議論内容・経緯（各議題ごとの発言・流れ）
             </label>
             <textarea
-              rows={6}
-              value={minutesResult.key_discussions || ""}
+              rows={7}
+              value={minutesResult.discussions !== undefined ? minutesResult.discussions : displayDiscussions}
               onChange={(e) =>
-                setMinutesResult({ ...minutesResult, key_discussions: e.target.value })
+                setMinutesResult({ ...minutesResult, discussions: e.target.value })
               }
               className="w-full bg-white border border-blue-200 rounded-lg p-3 text-xs md:text-sm outline-none focus:ring-2 focus:ring-blue-500/20 leading-relaxed font-mono"
             />
           </div>
 
-          {/* 4. 決定事項・アクションプラン */}
+          {/* 3. 決定事項・ToDo */}
           <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl">
-            <label className="block text-xs font-bold text-emerald-800 mb-1 flex items-center gap-1">
-              <ListTodo className="w-3.5 h-3.5" /> ✨ 決定事項・アクションプラン（担当・期日）
+            <label className="block text-xs font-bold text-emerald-900 mb-1.5 flex items-center gap-1.5">
+              <ListTodo className="w-3.5 h-3.5 text-emerald-700" />
+              ✨ 3. 決定事項・ToDo（担当・期日）
             </label>
             <textarea
               rows={4}
@@ -758,44 +748,17 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             />
           </div>
 
-          {/* 5. 理念・組織文化 */}
+          {/* 4. 次回検討・特記事項 */}
           <div className="p-4 bg-purple-50/70 border border-purple-200 rounded-xl">
-            <label className="block text-xs font-bold text-purple-800 mb-1 flex items-center gap-1">
-              <Heart className="w-3.5 h-3.5" /> 🍀 組織文化・理念に関する気づき
+            <label className="block text-xs font-bold text-purple-900 mb-1.5 flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-purple-700" />
+              📅 4. 次回検討・特記事項（宿題・理念・AI助言）
             </label>
             <textarea
               rows={3}
-              value={minutesResult.culture_notes || ""}
-              onChange={(e) => setMinutesResult({ ...minutesResult, culture_notes: e.target.value })}
+              value={minutesResult.next_steps !== undefined ? minutesResult.next_steps : displayNextSteps}
+              onChange={(e) => setMinutesResult({ ...minutesResult, next_steps: e.target.value })}
               className="w-full bg-white border border-purple-200 rounded-lg p-3 text-xs md:text-sm outline-none focus:ring-2 focus:ring-purple-500/20 leading-relaxed"
-            />
-          </div>
-
-          {/* 6. 次回の検討事項 */}
-          <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-xl">
-            <label className="block text-xs font-bold text-amber-800 mb-1 flex items-center gap-1">
-              <HelpCircle className="w-3.5 h-3.5" /> 🎉 次回の検討事項・宿題
-            </label>
-            <textarea
-              rows={3}
-              value={minutesResult.next_agenda || ""}
-              onChange={(e) => setMinutesResult({ ...minutesResult, next_agenda: e.target.value })}
-              className="w-full bg-white border border-amber-200 rounded-lg p-3 text-xs md:text-sm outline-none focus:ring-2 focus:ring-amber-500/20 leading-relaxed"
-            />
-          </div>
-
-          {/* 7. AI評価 */}
-          <div className="p-4 bg-slate-100 border border-slate-300 rounded-xl">
-            <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center gap-1">
-              <Lightbulb className="w-3.5 h-3.5 text-amber-500" /> 🌌 AIファシリテーター評価
-            </label>
-            <textarea
-              rows={4}
-              value={minutesResult.facilitator_feedback || ""}
-              onChange={(e) =>
-                setMinutesResult({ ...minutesResult, facilitator_feedback: e.target.value })
-              }
-              className="w-full bg-white border border-slate-300 rounded-lg p-3 text-xs md:text-sm outline-none focus:ring-2 focus:ring-clover-500/20 leading-relaxed"
             />
           </div>
 
