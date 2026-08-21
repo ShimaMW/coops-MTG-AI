@@ -661,7 +661,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
               {isLoading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Gemini 3.5 Flash-Lite が議事録を作成中...
+                  作成中...
                 </>
               ) : (
                 <>

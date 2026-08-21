@@ -5,6 +5,25 @@ const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
 
 const genAI = new GoogleGenerativeAI(API_KEY);
 
+// 堅牢なJSONパースヘルパー
+function cleanAndParseJson(rawText: string) {
+  let text = rawText.trim();
+  // マークダウンの ```json ... ``` または ``` ... ``` を除去
+  if (text.startsWith("```")) {
+    text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+  }
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    // 最初の { から最後の } までを抽出して再試行
+    const match = text.match(/\{[\s\S]*\}/);
+    if (match) {
+      return JSON.parse(match[0]);
+    }
+    throw new Error("AIの出力をJSON形式として読み込めませんでした。再度お試しください。");
+  }
+}
+
 // ==========================================
 // アジェンダ生成
 // ==========================================
@@ -57,7 +76,7 @@ ${params.topics || "（特記事項なし）"}
 
   const result = await model.generateContent(prompt);
   const text = result.response.text();
-  return JSON.parse(text);
+  return cleanAndParseJson(text);
 }
 
 // ==========================================
@@ -153,5 +172,5 @@ ${params.inputText || "（テキスト入力なし：添付音声/画像より�
 
   const result = await model.generateContent(contents);
   const text = result.response.text();
-  return JSON.parse(text);
+  return cleanAndParseJson(text);
 }
