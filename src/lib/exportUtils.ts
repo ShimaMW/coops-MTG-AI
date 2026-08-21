@@ -29,8 +29,7 @@ export async function downloadMeetingDocx(item: MeetingRecord): Promise<void> {
     }),
     new Paragraph({
       children: [
-        new TextRun({ text: `参加者：${item.participants.join("、") || "（未指定）"}` }),
-        item.clientName ? new TextRun({ text: `　対象利用者：${item.clientName}` }) : new TextRun(""),
+        new TextRun({ text: `参加者：${item.participants || "（未指定）"}` }),
       ],
       alignment: AlignmentType.CENTER,
     }),
@@ -99,16 +98,13 @@ export async function downloadMeetingDocx(item: MeetingRecord): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
-// ==========================================
-// 議事録テキスト取得
-// ==========================================
 export function getMinutesPlainText(item: MeetingRecord): string {
   if (!item.minutes) return "";
   return [
     `【COOPs 議事録】`,
     `会議日: ${formatJPDate(item.meetingDate)}`,
     `部署: ${item.dept} / 種別: ${item.meetingType}`,
-    `参加者: ${item.participants.join("、") || "（未指定）"}${item.clientName ? ` / 対象利用者: ${item.clientName}` : ""}`,
+    `参加者: ${item.participants || "（未指定）"}`,
     "",
     "📌 【全体要約】",
     item.minutes.summary,
@@ -133,16 +129,13 @@ export function getMinutesPlainText(item: MeetingRecord): string {
   ].join("\n");
 }
 
-// ==========================================
-// アジェンダテキスト取得
-// ==========================================
 export function getAgendaPlainText(item: MeetingRecord): string {
   if (!item.agenda) return "";
   return [
     `【COOPs 会議アジェンダ】`,
     `会議日: ${formatJPDate(item.meetingDate)}`,
     `部署: ${item.dept} / 種別: ${item.meetingType}`,
-    `参加者: ${item.participants.join("、") || "（未指定）"}${item.clientName ? ` / 対象利用者: ${item.clientName}` : ""}`,
+    `参加者: ${item.participants || "（未指定）"}`,
     `所要時間: ${item.duration || "未定"}`,
     "",
     "🎯 【目的】",

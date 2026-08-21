@@ -6,14 +6,13 @@ const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 // ==========================================
-// アジェンダ生成
+// アジェンダ生成（定例・事業所内会議特化）
 // ==========================================
 export async function generateAgendaAI(params: {
   meetingDate: string;
   dept: string;
   meetingType: string;
-  participants: string[];
-  clientName?: string;
+  participants: string;
   duration?: string;
   topics: string;
 }) {
@@ -38,15 +37,14 @@ export async function generateAgendaAI(params: {
     },
   });
 
-  const prompt = `あなたは介護事業所のベテランファシリテーターAIです。
-以下の会議情報と議題メモをもとに、実用的な会議アジェンダを作成してください。
+  const prompt = `あなたは介護事業所の会議ファシリテーターAIです。
+以下の会議情報と議題メモをもとに、実務的で進行しやすい会議アジェンダを作成してください。
 
 【会議情報】
 - 会議日: ${params.meetingDate || "未定"}
 - 部署: ${params.dept || "未定"}
-- 会議種別: ${params.meetingType || "未定"}
-- 参加者: ${params.participants.join("、") || "未定"}
-- 対象利用者: ${params.clientName || "なし"}
+- 会議種別: ${params.meetingType || "定例ミーティング"}
+- 参加者: ${params.participants || "未定"}
 - 想定所要時間: ${params.duration || "未定"}
 
 【議題メモ（ユーザー入力）】
@@ -54,7 +52,7 @@ ${params.topics || "（特記事項なし）"}
 
 【作成方針】
 - 各議題には「確認すべきポイント」「注意点」「AIからのアドバイス」を追記してください。
-- 介護現場特有の観点（利用者本位、安全管理、スタッフ連携、ケアの質）を盛り込んでください。
+- 介護事業所の運営・業務効率化・スタッフ連携・安全管理・クローバーイズム（組織理念）の観点を盛り込んでください。
 - 【報告】【決定】【議論】等の種別を各議題に付与してください。すべて日本語表記とし、英語表記は使用しないでください。`;
 
   const result = await model.generateContent(prompt);
@@ -63,14 +61,13 @@ ${params.topics || "（特記事項なし）"}
 }
 
 // ==========================================
-// 議事録生成（テキスト＋音声マルチモーダル対応）
+// 議事録生成（定例・事業所内会議特化）
 // ==========================================
 export async function generateMinutesAI(params: {
   meetingDate: string;
   dept: string;
   meetingType: string;
-  participants: string[];
-  clientName?: string;
+  participants: string;
   agendaBody?: string;
   inputText?: string;
   audioBase64?: string;
@@ -89,7 +86,7 @@ export async function generateMinutesAI(params: {
           agenda_items: { type: SchemaType.STRING, description: "議題と振り返り（箇条書き・アジェンダとの対応）" },
           key_discussions: { type: SchemaType.STRING, description: "主な議論・発言（発言者：内容の形式）" },
           action_plans: { type: SchemaType.STRING, description: "決定事項・アクションプラン（担当者・期日を明記）" },
-          culture_notes: { type: SchemaType.STRING, description: "組織文化・理念に関する発言や気づき" },
+          culture_notes: { type: SchemaType.STRING, description: "組織文化・理念・チーム運営に関する発言や気づき" },
           next_agenda: { type: SchemaType.STRING, description: "次回の検討事項・宿題" },
           facilitator_feedback: { type: SchemaType.STRING, description: "AIファシリテーターとしての評価（良かった点2つ・改善提案2つ）" },
         },
@@ -107,14 +104,13 @@ export async function generateMinutesAI(params: {
   });
 
   const prompt = `あなたは介護事業所向けのプロフェッショナル会議ファシリテーターAIです。
-提供された情報（テキストメモ、および音声データ）をもとに、詳細で極めて実用的な議事録を作成してください。
+提供された情報（テキストメモ、および音声データ）をもとに、実務に直結する明瞭で詳細な議事録を作成してください。
 
 【会議情報】
 - 会議日: ${params.meetingDate || "未記載"}
 - 部署: ${params.dept || "未記載"}
-- 会議種別: ${params.meetingType || "未記載"}
-- 参加者: ${params.participants.join("、") || "未記載"}
-- 対象利用者: ${params.clientName || "なし"}
+- 会議種別: ${params.meetingType || "定例ミーティング"}
+- 参加者: ${params.participants || "未記載"}
 ${params.agendaBody ? `\n【事前アジェンダ】\n${params.agendaBody}` : ""}
 
 【テキストメモ・入力データ】
@@ -125,7 +121,7 @@ ${params.inputText || "（テキスト入力なし：添付音声より生成）
 2. アジェンダがある場合は各議題に対応した議論・結論を整理してください。アジェンダ外の議論も客観的に拾い上げて整理してください。
 3. 発言者が特定できる場合は「氏名：〜」の形式で記録してください。
 4. アクションプランには必ず「担当者」と「期日（または目安時期）」を明記してください。
-5. 介護現場の理念（利用者本位、自立支援、安心・安全、チームケア）に関する気づきを「組織文化・理念」に盛り込んでください。
+5. 事業所運営やチームワーク、介護理念（利用者本位、安心・安全、スタッフ連携）に関する気づきを「組織文化・理念」に盛り込んでください。
 6. 会議に出ていないスタッフが見ても、なぜその決定になったのかが明確に伝わる丁寧な文章にしてください。
 7. AI評価では、会議の進行・発言バランス・決定の質について具体的なフィードバックを提示してください。`;
 

@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { MasterData, UserProfile, AgendaDetails } from "@/lib/types";
-import { saveAgendaRecord } from "@/lib/storage";
+import { UserProfile, AgendaDetails } from "@/lib/types";
+import { DEFAULT_DEPARTMENTS, DEFAULT_MEETING_TYPES, saveAgendaRecord } from "@/lib/storage";
 import { formatJPDate } from "@/lib/exportUtils";
 import {
   Sparkles,
@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 
 interface AgendaTabProps {
-  masterData: MasterData;
   currentUser: UserProfile;
   onSaved: (createdId?: string) => void;
   onGoToMinutes?: (agendaId: string) => void;
@@ -28,7 +27,6 @@ interface AgendaTabProps {
 }
 
 export const AgendaTab: React.FC<AgendaTabProps> = ({
-  masterData,
   currentUser,
   onSaved,
   onGoToMinutes,
@@ -37,10 +35,9 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
   const today = new Date().toISOString().split("T")[0];
 
   const [meetingDate, setMeetingDate] = useState(today);
-  const [dept, setDept] = useState(currentUser.department || masterData.departments[0] || "");
-  const [meetingType, setMeetingType] = useState(masterData.meetingTypes[0]?.name || "");
-  const [participants, setParticipants] = useState<string[]>([]);
-  const [clientName, setClientName] = useState("");
+  const [dept, setDept] = useState(currentUser.department || DEFAULT_DEPARTMENTS[0]);
+  const [meetingType, setMeetingType] = useState(DEFAULT_MEETING_TYPES[0]);
+  const [participants, setParticipants] = useState("");
   const [duration, setDuration] = useState("1時間");
   const [topics, setTopics] = useState("");
 
@@ -48,15 +45,6 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
   const [generatedAgenda, setGeneratedAgenda] = useState<AgendaDetails | null>(null);
   const [savedRecordId, setSavedRecordId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
-
-  // 部署変更時に参加者をリセット
-  const deptEmployees = masterData.employees.filter((e) => e.dept === dept);
-
-  const toggleParticipant = (name: string) => {
-    setParticipants((prev) =>
-      prev.includes(name) ? prev.filter((p) => p !== name) : [...prev, name]
-    );
-  };
 
   const handleGenerate = async () => {
     if (!dept) {
@@ -81,7 +69,6 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
           dept,
           meetingType,
           participants,
-          clientName,
           duration,
           topics,
         }),
@@ -114,7 +101,6 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
         dept,
         meetingType,
         participants,
-        clientName,
         duration,
         userTopics: topics,
         agenda: generatedAgenda,
@@ -139,7 +125,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
       `【COOPs 会議アジェンダ】`,
       `会議日: ${formatJPDate(meetingDate)}`,
       `部署: ${dept} / 種別: ${meetingType}`,
-      `参加者: ${participants.join("、") || "（未指定）"}${clientName ? ` / 対象利用者: ${clientName}` : ""}`,
+      `参加者: ${participants || "（未指定）"}`,
       `所要時間: ${duration || "未定"}`,
       "",
       "🎯 【目的】",
@@ -168,7 +154,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
         <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
           <Calendar className="w-5 h-5 text-clover-700" />
-          会議アジェンダの事前作成
+          会議アジェンダの事前作成（定例・事業所会議）
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -186,13 +172,10 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
             <label className="block text-xs font-bold text-slate-700 mb-1">🏢 部署</label>
             <select
               value={dept}
-              onChange={(e) => {
-                setDept(e.target.value);
-                setParticipants([]);
-              }}
+              onChange={(e) => setDept(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-clover-600 focus:bg-white transition"
             >
-              {masterData.departments.map((d) => (
+              {DEFAULT_DEPARTMENTS.map((d) => (
                 <option key={d} value={d}>
                   {d}
                 </option>
@@ -201,97 +184,52 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
           </div>
         </div>
 
-        <div className="mb-4">
-          <label className="block text-xs font-bold text-slate-700 mb-1">📋 会議種別</label>
-          <select
-            value={meetingType}
-            onChange={(e) => setMeetingType(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-clover-600 focus:bg-white transition"
-          >
-            {masterData.meetingTypes.map((t) => (
-              <option key={t.id} value={t.name}>
-                {t.name} {t.desc ? `（${t.desc}）` : ""}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* 参加者選択 */}
-        <div className="mb-4">
-          <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
-            <span>👥 参加者（{participants.length}名選択中）</span>
-            <span className="text-[11px] text-slate-400 font-normal">タップで選択/解除</span>
-          </label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-36 overflow-y-auto p-1 bg-slate-50 border border-slate-200 rounded-xl">
-            {deptEmployees.length === 0 ? (
-              <div className="col-span-full py-4 text-center text-xs text-slate-400">
-                この部署に登録されているスタッフがいません
-              </div>
-            ) : (
-              deptEmployees.map((emp) => {
-                const isSelected = participants.includes(emp.name);
-                return (
-                  <button
-                    key={emp.id}
-                    type="button"
-                    onClick={() => toggleParticipant(emp.name)}
-                    className={`p-2 rounded-lg text-left text-xs transition flex items-center gap-2 border ${
-                      isSelected
-                        ? "bg-clover-50 border-clover-600 text-clover-900 font-bold"
-                        : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
-                    }`}
-                  >
-                    <div
-                      className={`w-4 h-4 rounded flex items-center justify-center text-[10px] ${
-                        isSelected ? "bg-clover-700 text-white" : "border border-slate-300"
-                      }`}
-                    >
-                      {isSelected ? "✓" : ""}
-                    </div>
-                    <div className="truncate">
-                      <div>{emp.name}</div>
-                      {emp.role && <div className="text-[10px] text-slate-400 font-normal">{emp.role}</div>}
-                    </div>
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        {/* 対象利用者 & 想定時間 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">
-              👤 対象利用者名（カンファレンス等の場合）
-            </label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">📋 会議種別</label>
+            <select
+              value={meetingType}
+              onChange={(e) => setMeetingType(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-clover-600 focus:bg-white transition"
+            >
+              {DEFAULT_MEETING_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">👥 参加者（自由入力）</label>
             <input
               type="text"
-              placeholder="例：田中 花子 様"
-              value={clientName}
-              onChange={(e) => setClientName(e.target.value)}
+              placeholder="例：佐藤、田中、高橋、渡辺"
+              value={participants}
+              onChange={(e) => setParticipants(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-clover-600 focus:bg-white transition"
             />
           </div>
+        </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">⏱️ 想定所要時間</label>
-            <div className="flex flex-wrap gap-1.5 mt-1">
-              {durations.map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => setDuration(d)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
-                    duration === d
-                      ? "bg-clover-700 text-white font-bold"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
-                >
-                  {d}
-                </button>
-              ))}
-            </div>
+        {/* 想定時間 */}
+        <div className="mb-4">
+          <label className="block text-xs font-bold text-slate-700 mb-1">⏱️ 想定所要時間</label>
+          <div className="flex flex-wrap gap-1.5 mt-1">
+            {durations.map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => setDuration(d)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
+                  duration === d
+                    ? "bg-clover-700 text-white font-bold"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                {d}
+              </button>
+            ))}
           </div>
         </div>
 

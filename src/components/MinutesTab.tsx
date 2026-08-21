@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { MasterData, MeetingRecord, UserProfile, MinutesDetails } from "@/lib/types";
-import { saveMinutesRecord } from "@/lib/storage";
+import { MeetingRecord, UserProfile, MinutesDetails } from "@/lib/types";
+import { DEFAULT_DEPARTMENTS, DEFAULT_MEETING_TYPES, saveMinutesRecord } from "@/lib/storage";
 import { downloadMeetingDocx, getMinutesPlainText, formatJPDate } from "@/lib/exportUtils";
 import { AudioRecorder } from "./AudioRecorder";
 import { AudioUploader } from "./AudioUploader";
@@ -26,7 +26,6 @@ import {
 } from "lucide-react";
 
 interface MinutesTabProps {
-  masterData: MasterData;
   meetingRecords: MeetingRecord[];
   currentUser: UserProfile;
   initialAgendaId?: string | null;
@@ -36,7 +35,6 @@ interface MinutesTabProps {
 }
 
 export const MinutesTab: React.FC<MinutesTabProps> = ({
-  masterData,
   meetingRecords,
   currentUser,
   initialAgendaId,
@@ -51,10 +49,9 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
   // Step 1: 会議情報
   const [selectedRecordId, setSelectedRecordId] = useState<string>(initialAgendaId || "");
   const [meetingDate, setMeetingDate] = useState(today);
-  const [dept, setDept] = useState(currentUser.department || masterData.departments[0] || "");
-  const [meetingType, setMeetingType] = useState(masterData.meetingTypes[0]?.name || "");
-  const [participants, setParticipants] = useState<string[]>([]);
-  const [clientName, setClientName] = useState("");
+  const [dept, setDept] = useState(currentUser.department || DEFAULT_DEPARTMENTS[0]);
+  const [meetingType, setMeetingType] = useState(DEFAULT_MEETING_TYPES[0]);
+  const [participants, setParticipants] = useState("");
 
   // Step 2: 入力データ（テキスト & 音声）
   const [inputText, setInputText] = useState("");
@@ -75,15 +72,6 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
     }
   }, [initialAgendaId, meetingRecords]);
 
-  // 部署変更時に参加者一覧を取得
-  const deptEmployees = masterData.employees.filter((e) => e.dept === dept);
-
-  const toggleParticipant = (name: string) => {
-    setParticipants((prev) =>
-      prev.includes(name) ? prev.filter((p) => p !== name) : [...prev, name]
-    );
-  };
-
   // アジェンダ呼び出し
   const handleSelectRecord = (id: string) => {
     setSelectedRecordId(id);
@@ -94,7 +82,6 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
       setDept(rec.dept);
       setMeetingType(rec.meetingType);
       setParticipants(rec.participants);
-      setClientName(rec.clientName || "");
       showToast("アジェンダ情報を読み込みました ✓");
     }
   };
@@ -117,7 +104,6 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
           dept,
           meetingType,
           participants,
-          clientName,
           agendaBody,
           inputText,
           audioBase64,
@@ -155,7 +141,6 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
       dept,
       meetingType,
       participants,
-      clientName,
       minutes: {
         ...minutesResult,
         inputText,
@@ -176,7 +161,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
     }
   };
 
-  // Word (.docx) ダウンロード（アジェンダと議事録を統合出力）
+  // Word (.docx) ダウンロード
   const handleDownloadDocx = () => {
     if (!minutesResult) return;
     const selectedRec = meetingRecords.find((r) => r.id === selectedRecordId);
@@ -187,7 +172,6 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
       dept,
       meetingType,
       participants,
-      clientName,
       agenda: selectedRec?.agenda,
       minutes: minutesResult,
       status: "minutes_completed",
@@ -211,7 +195,6 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
         dept,
         meetingType,
         participants,
-        clientName,
         agenda: selectedRec?.agenda,
         minutes: minutesResult,
         status: "minutes_completed",
@@ -267,7 +250,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
           <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
             <Calendar className="w-5 h-5 text-clover-700" />
-            ステップ 1: 会議基本情報
+            ステップ 1: 会議基本情報（定例・事業所会議）
           </h2>
 
           {/* 事前アジェンダ連携 */}
@@ -285,7 +268,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
                 <option value="">― アジェンダを選択（新規の場合は未選択） ―</option>
                 {agendaRecords.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.meetingDate} | {a.dept} | {a.meetingType} {a.clientName ? `(${a.clientName})` : ""}
+                    {a.meetingDate} | {a.dept} | {a.meetingType}
                     {a.status === "minutes_completed" ? " [議事録あり]" : " [アジェンダのみ]"}
                   </option>
                 ))}
@@ -307,13 +290,10 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
               <label className="block text-xs font-bold text-slate-700 mb-1">🏢 部署</label>
               <select
                 value={dept}
-                onChange={(e) => {
-                  setDept(e.target.value);
-                  setParticipants([]);
-                }}
+                onChange={(e) => setDept(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-clover-600 focus:bg-white transition"
               >
-                {masterData.departments.map((d) => (
+                {DEFAULT_DEPARTMENTS.map((d) => (
                   <option key={d} value={d}>
                     {d}
                   </option>
@@ -322,65 +302,32 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">📋 会議種別</label>
-            <select
-              value={meetingType}
-              onChange={(e) => setMeetingType(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-clover-600 focus:bg-white transition"
-            >
-              {masterData.meetingTypes.map((t) => (
-                <option key={t.id} value={t.name}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* 参加者 */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
-              <span>👥 参加者（{participants.length}名選択中）</span>
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-36 overflow-y-auto p-1 bg-slate-50 border border-slate-200 rounded-xl">
-              {deptEmployees.map((emp) => {
-                const isSelected = participants.includes(emp.name);
-                return (
-                  <button
-                    key={emp.id}
-                    type="button"
-                    onClick={() => toggleParticipant(emp.name)}
-                    className={`p-2 rounded-lg text-left text-xs transition flex items-center gap-2 border ${
-                      isSelected
-                        ? "bg-clover-50 border-clover-600 text-clover-900 font-bold"
-                        : "bg-white border-slate-200 text-slate-700"
-                    }`}
-                  >
-                    <div
-                      className={`w-4 h-4 rounded flex items-center justify-center text-[10px] ${
-                        isSelected ? "bg-clover-700 text-white" : "border border-slate-300"
-                      }`}
-                    >
-                      {isSelected ? "✓" : ""}
-                    </div>
-                    <div className="truncate">{emp.name}</div>
-                  </button>
-                );
-              })}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">📋 会議種別</label>
+              <select
+                value={meetingType}
+                onChange={(e) => setMeetingType(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-clover-600 focus:bg-white transition"
+              >
+                {DEFAULT_MEETING_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">
-              👤 対象利用者名（カンファレンス等）
-            </label>
-            <input
-              type="text"
-              placeholder="例：田中 花子 様"
-              value={clientName}
-              onChange={(e) => setClientName(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-clover-600 focus:bg-white transition"
-            />
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">👥 参加者（自由入力）</label>
+              <input
+                type="text"
+                placeholder="例：佐藤、田中、高橋、渡辺"
+                value={participants}
+                onChange={(e) => setParticipants(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-clover-600 focus:bg-white transition"
+              />
+            </div>
           </div>
 
           <div className="pt-4 flex justify-end">
@@ -507,7 +454,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
                 <span>📅 {formatJPDate(meetingDate)}</span>
                 <span>🏢 {dept}</span>
                 <span>📋 {meetingType}</span>
-                <span>👥 {participants.join("、") || "（未指定）"}</span>
+                <span>👥 {participants || "（未指定）"}</span>
                 {selectedRecordId && (
                   <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
                     <LinkIcon className="w-3 h-3" /> アジェンダ連携中

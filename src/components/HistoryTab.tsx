@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { MeetingRecord, MasterData, UserProfile } from "@/lib/types";
-import { deleteMeetingRecord } from "@/lib/storage";
+import { MeetingRecord, UserProfile } from "@/lib/types";
+import { DEFAULT_DEPARTMENTS, DEFAULT_MEETING_TYPES, deleteMeetingRecord } from "@/lib/storage";
 import { downloadMeetingDocx, getMinutesPlainText, getAgendaPlainText, formatJPDate } from "@/lib/exportUtils";
 import {
   Table,
@@ -22,7 +22,6 @@ import {
 
 interface HistoryTabProps {
   meetingRecords: MeetingRecord[];
-  masterData: MasterData;
   currentUser: UserProfile;
   onRefresh: () => void;
   showToast: (msg: string, type?: "success" | "error") => void;
@@ -30,7 +29,6 @@ interface HistoryTabProps {
 
 export const HistoryTab: React.FC<HistoryTabProps> = ({
   meetingRecords,
-  masterData,
   currentUser,
   onRefresh,
   showToast,
@@ -52,7 +50,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
     if (filterType !== "all" && rec.meetingType !== filterType) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      const content = `${rec.meetingDate} ${rec.dept} ${rec.meetingType} ${rec.participants.join(" ")} ${rec.agenda?.purpose || ""} ${rec.minutes?.summary || ""}`.toLowerCase();
+      const content = `${rec.meetingDate} ${rec.dept} ${rec.meetingType} ${rec.participants} ${rec.agenda?.purpose || ""} ${rec.minutes?.summary || ""}`.toLowerCase();
       return content.includes(q);
     }
     return true;
@@ -92,7 +90,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
             className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs md:text-sm outline-none focus:border-clover-600 focus:bg-white transition"
           >
             <option value="all">すべての部署</option>
-            {masterData.departments.map((d) => (
+            {DEFAULT_DEPARTMENTS.map((d) => (
               <option key={d} value={d}>
                 {d}
               </option>
@@ -106,9 +104,9 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
           className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs md:text-sm outline-none focus:border-clover-600 focus:bg-white transition"
         >
           <option value="all">すべての会議種別</option>
-          {masterData.meetingTypes.map((t) => (
-            <option key={t.id} value={t.name}>
-              {t.name}
+          {DEFAULT_MEETING_TYPES.map((t) => (
+            <option key={t} value={t}>
+              {t}
             </option>
           ))}
         </select>
@@ -155,7 +153,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                       <td className="py-3 px-4 font-bold text-slate-700">{rec.dept}</td>
                       <td className="py-3 px-4 text-slate-600">{rec.meetingType}</td>
                       <td className="py-3 px-4 text-slate-500 max-w-[150px] truncate">
-                        {rec.participants.join("、") || "―"}
+                        {rec.participants || "―"}
                       </td>
                       <td className="py-3 px-4 text-center whitespace-nowrap">
                         {isDone ? (
@@ -224,18 +222,17 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
         </div>
       </div>
 
-      {/* ── 詳細閲覧モーダル（アジェンダ ＆ 議事録のタブ切替可能） ── */}
+      {/* ── 詳細閲覧モーダル ── */}
       {selectedRecord && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-150">
-            {/* モーダルヘッダー */}
             <div className="p-4 bg-clover-700 text-white flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-sm md:text-base">
                   {modalTab === "minutes" ? "📝 議事録" : "📋 アジェンダ"}｜{selectedRecord.dept} {selectedRecord.meetingType}
                 </h3>
                 <div className="text-xs text-white/80 mt-0.5">
-                  開催日: {formatJPDate(selectedRecord.meetingDate)} / 参加者: {selectedRecord.participants.join("、") || "未指定"}
+                  開催日: {formatJPDate(selectedRecord.meetingDate)} / 参加者: {selectedRecord.participants || "未指定"}
                 </div>
               </div>
               <button
@@ -246,7 +243,6 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
               </button>
             </div>
 
-            {/* モーダル内タブ切り替え（両方ある場合） */}
             {selectedRecord.agenda && selectedRecord.minutes && (
               <div className="flex bg-slate-100 p-1 border-b border-slate-200">
                 <button
@@ -272,9 +268,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
               </div>
             )}
 
-            {/* モーダル本文 */}
             <div className="p-6 overflow-y-auto space-y-4 text-xs md:text-sm leading-relaxed text-slate-800">
-              {/* 議事録タブの表示 */}
               {modalTab === "minutes" && selectedRecord.minutes && (
                 <>
                   <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
@@ -326,7 +320,6 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                 </>
               )}
 
-              {/* アジェンダタブの表示 */}
               {modalTab === "agenda" && selectedRecord.agenda && (
                 <>
                   <div className="p-4 bg-clover-50/70 rounded-xl border border-clover-200">
@@ -340,7 +333,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                   </div>
 
                   {selectedRecord.agenda.review && (
-                    <div className="p-4 bg-amber-50/70 rounded-xl border border-amber-200">
+                    <div className="p-4 bg-amber-50/70 border border-amber-200">
                       <div className="font-bold text-amber-900 mb-1">🔄 前回の振り返り</div>
                       <p className="whitespace-pre-wrap">{selectedRecord.agenda.review}</p>
                     </div>
@@ -351,7 +344,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                     <p className="whitespace-pre-wrap font-mono">{selectedRecord.agenda.agenda_items}</p>
                   </div>
 
-                  <div className="p-4 bg-emerald-50/70 rounded-xl border border-emerald-200">
+                  <div className="p-4 bg-emerald-50/70 border border-emerald-200">
                     <div className="font-bold text-emerald-900 mb-1">🏁 クロージング</div>
                     <p className="whitespace-pre-wrap">{selectedRecord.agenda.closing}</p>
                   </div>
@@ -359,7 +352,6 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
               )}
             </div>
 
-            {/* モーダルフッター */}
             <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-end gap-2">
               <button
                 onClick={() => downloadMeetingDocx(selectedRecord)}

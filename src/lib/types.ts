@@ -6,20 +6,6 @@ export interface UserProfile {
   name: string;
   department: string;
   role: UserRole;
-  avatarUrl?: string;
-}
-
-export interface Employee {
-  id: string;
-  dept: string;
-  name: string;
-  role: string;
-}
-
-export interface MeetingType {
-  id: string;
-  name: string;
-  desc: string;
 }
 
 export interface AgendaDetails {
@@ -45,14 +31,13 @@ export interface MinutesDetails {
   facilitator_feedback: string;
 }
 
-// アジェンダと議事録が紐づく統合レコード
+// アジェンダと議事録が紐づく統合レコード（事業所会議特化）
 export interface MeetingRecord {
   id: string;
   meetingDate: string;
   dept: string;
   meetingType: string;
-  participants: string[];
-  clientName?: string;
+  participants: string; // テキスト入力（例: "佐藤、田中、高橋"）
   duration?: string;
   userTopics?: string;
   
@@ -67,10 +52,4 @@ export interface MeetingRecord {
   createdAt: string;
   updatedAt: string;
   createdById?: string;
-}
-
-export interface MasterData {
-  departments: string[];
-  meetingTypes: MeetingType[];
-  employees: Employee[];
 }

@@ -1,26 +1,23 @@
 "use client";
 
 import React from "react";
-import { Calendar, FileText, Table, Users } from "lucide-react";
+import { Calendar, FileText, Table } from "lucide-react";
 
-export type TabType = "agenda" | "minutes" | "history" | "master";
+export type TabType = "agenda" | "minutes" | "history";
 
 interface TabNavigationProps {
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
-  isAdmin: boolean;
 }
 
 export const TabNavigation: React.FC<TabNavigationProps> = ({
   activeTab,
   onTabChange,
-  isAdmin,
 }) => {
   const tabs = [
     { id: "agenda", label: "アジェンダ作成", icon: Calendar },
     { id: "minutes", label: "議事録作成", icon: FileText },
     { id: "history", label: "ログ・履歴一覧", icon: Table },
-    { id: "master", label: "マスタ・権限管理", icon: Users },
   ] as const;
 
   return (

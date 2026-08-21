@@ -2,18 +2,17 @@
 
 import React from "react";
 import { UserProfile, UserRole } from "@/lib/types";
+import { DEFAULT_DEPARTMENTS } from "@/lib/storage";
 import { Sparkles, Shield } from "lucide-react";
 
 interface NavbarProps {
   currentUser: UserProfile;
   onUserChange: (user: UserProfile) => void;
-  departments: string[];
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   currentUser,
   onUserChange,
-  departments,
 }) => {
   return (
     <header className="bg-clover-700 text-white px-5 py-3.5 rounded-2xl flex flex-wrap items-center justify-between gap-4 shadow-md mb-6 no-print">
@@ -29,7 +28,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               v3.5 Flash-Lite
             </span>
           </div>
-          <p className="text-xs text-white/70">介護事業所向け 次世代AIミーティングアシスタント</p>
+          <p className="text-xs text-white/70">介護事業所向け AIミーティングアシスタント</p>
         </div>
       </div>
 
@@ -43,7 +42,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <div className="h-3.5 w-px bg-white/20"></div>
 
-          {/* 部署・権限切り替えセレクタ */}
           <select
             className="bg-transparent text-white border-none outline-none cursor-pointer font-medium text-xs focus:ring-0"
             value={`${currentUser.department}:${currentUser.role}`}
@@ -60,7 +58,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <option value="総務・管理本部:admin" className="text-gray-900">
               🔑 本部管理者 (admin)
             </option>
-            {departments.map((dept) => (
+            {DEFAULT_DEPARTMENTS.map((dept) => (
               <option key={dept} value={`${dept}:staff`} className="text-gray-900">
                 👤 {dept} スタッフ
               </option>

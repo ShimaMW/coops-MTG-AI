@@ -6,30 +6,24 @@ import { TabNavigation, TabType } from "@/components/TabNavigation";
 import { AgendaTab } from "@/components/AgendaTab";
 import { MinutesTab } from "@/components/MinutesTab";
 import { HistoryTab } from "@/components/HistoryTab";
-import { MasterTab } from "@/components/MasterTab";
 import { Toast } from "@/components/Toast";
 import {
-  getMasterData,
   getCurrentUser,
   saveCurrentUser,
   getMeetingRecords,
 } from "@/lib/storage";
-import { MasterData, UserProfile, MeetingRecord } from "@/lib/types";
+import { UserProfile, MeetingRecord } from "@/lib/types";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>("minutes");
-  const [masterData, setMasterData] = useState<MasterData | null>(null);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [meetingRecords, setMeetingRecords] = useState<MeetingRecord[]>([]);
   const [selectedAgendaIdForMinutes, setSelectedAgendaIdForMinutes] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type?: "success" | "error" } | null>(null);
 
-  // 初期データ読み込み
   const reloadData = () => {
-    const m = getMasterData();
     const u = getCurrentUser();
     const records = getMeetingRecords();
-    setMasterData(m);
     setCurrentUser(u);
     setMeetingRecords(records);
   };
@@ -51,13 +45,12 @@ export default function Home() {
     showToast(`アカウントを「${updated.name} (${updated.role === "admin" ? "本部" : updated.department})」に切り替えました`);
   };
 
-  // アジェンダ保存後に「議事録作成」へワンクリック遷移
   const handleGoToMinutesWithAgenda = (agendaId: string) => {
     setSelectedAgendaIdForMinutes(agendaId);
     setActiveTab("minutes");
   };
 
-  if (!masterData || !currentUser) {
+  if (!currentUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100">
         <div className="flex flex-col items-center gap-3">
@@ -68,8 +61,6 @@ export default function Home() {
     );
   }
 
-  const isAdmin = currentUser.role === "admin";
-
   return (
     <main className="min-h-screen bg-slate-100/70 p-3 sm:p-6 md:p-8">
       <div className="max-w-4xl mx-auto">
@@ -77,26 +68,23 @@ export default function Home() {
         <Navbar
           currentUser={currentUser}
           onUserChange={handleUserChange}
-          departments={masterData.departments}
         />
 
-        {/* タブナビゲーション */}
+        {/* タブナビゲーション（3タブ） */}
         <TabNavigation
           activeTab={activeTab}
           onTabChange={(tab) => {
             setActiveTab(tab);
             reloadData();
           }}
-          isAdmin={isAdmin}
         />
 
         {/* タブコンテンツ */}
         <div className="mt-4">
           {activeTab === "agenda" && (
             <AgendaTab
-              masterData={masterData}
               currentUser={currentUser}
-              onSaved={(createdId) => {
+              onSaved={() => {
                 reloadData();
               }}
               onGoToMinutes={handleGoToMinutesWithAgenda}
@@ -106,7 +94,6 @@ export default function Home() {
 
           {activeTab === "minutes" && (
             <MinutesTab
-              masterData={masterData}
               meetingRecords={meetingRecords}
               currentUser={currentUser}
               initialAgendaId={selectedAgendaIdForMinutes}
@@ -124,18 +111,8 @@ export default function Home() {
           {activeTab === "history" && (
             <HistoryTab
               meetingRecords={meetingRecords}
-              masterData={masterData}
               currentUser={currentUser}
               onRefresh={reloadData}
-              showToast={showToast}
-            />
-          )}
-
-          {activeTab === "master" && (
-            <MasterTab
-              masterData={masterData}
-              currentUser={currentUser}
-              onUpdate={reloadData}
               showToast={showToast}
             />
           )}
