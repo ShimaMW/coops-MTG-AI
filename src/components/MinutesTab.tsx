@@ -24,6 +24,9 @@ import {
   Heart,
   Calendar,
   Share2,
+  Mic,
+  Image as ImageIcon,
+  Sliders,
 } from "lucide-react";
 
 interface MinutesTabProps {
@@ -48,7 +51,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
     return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
   };
 
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
   // Step 1: 会議情報
   const [selectedRecordId, setSelectedRecordId] = useState<string>(initialAgendaId || "");
@@ -58,15 +61,20 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
   const [customMeetingType, setCustomMeetingType] = useState("");
   const [participants, setParticipants] = useState("");
 
-  // Step 2: 入力データ（テキスト、音声、画像/ホワイトボード）
-  const [inputText, setInputText] = useState("");
+  // Step 2: 音声入力 & 文字起こし
   const [audioBase64, setAudioBase64] = useState<string | null>(null);
   const [audioMimeType, setAudioMimeType] = useState<string | null>(null);
+  const [audioFileName, setAudioFileName] = useState<string | null>(null);
+  const [transcriptPreview, setTranscriptPreview] = useState<string>("");
+
+  // Step 3: 資料写真・メモ・AI指示
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [imageMimeType, setImageMimeType] = useState<string | null>(null);
-  const [mediaFileName, setMediaFileName] = useState<string | null>(null);
+  const [imageFileName, setImageFileName] = useState<string | null>(null);
+  const [inputText, setInputText] = useState("");
+  const [aiFocusInstruction, setAiFocusInstruction] = useState("");
 
-  // Step 3: AI生成結果
+  // Step 4: AI生成結果
   const [isLoading, setIsLoading] = useState(false);
   const [minutesResult, setMinutesResult] = useState<MinutesDetails | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
@@ -79,6 +87,15 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
     const d = new Date();
     d.setDate(d.getDate() + offsetDays);
     setMeetingDate(`${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`);
+  };
+
+  // カレンダーUIからの日付更新
+  const handleDatePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.value) return;
+    const parts = e.target.value.split("-");
+    if (parts.length === 3) {
+      setMeetingDate(`${parts[0]}/${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)}`);
+    }
   };
 
   // アジェンダ初期選択の反映
@@ -108,7 +125,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
     }
   };
 
-  // 議事録生成（音声＋画像OCR＋テキストマルチモーダル）
+  // 議事録生成
   const handleGenerate = async () => {
     setIsLoading(true);
     setSaveStatus("idle");
@@ -117,6 +134,13 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
     try {
       const selectedRec = meetingRecords.find((r) => r.id === selectedRecordId);
       const agendaBody = selectedRec?.agenda?.full_text || "";
+
+      // テキストメモと文字起こし、AI指示を統合
+      const combinedInputText = [
+        transcriptPreview ? `【音声文字起こし/プレビュー】\n${transcriptPreview}` : "",
+        inputText ? `【追加メモ・発言内容】\n${inputText}` : "",
+        aiFocusInstruction ? `【AIへのフォーカス指示】\n${aiFocusInstruction}` : "",
+      ].filter(Boolean).join("\n\n");
 
       const res = await fetch("/api/minutes/generate", {
         method: "POST",
@@ -127,7 +151,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
           meetingType: effectiveMeetingType,
           participants,
           agendaBody,
-          inputText,
+          inputText: combinedInputText,
           audioBase64,
           audioMimeType,
           imageBase64,
@@ -142,7 +166,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
 
       const data = await res.json();
       setMinutesResult(data);
-      setStep(3);
+      setStep(4);
       showToast("議事録を生成しました ✨");
     } catch (err: any) {
       showToast("エラー: " + err.message, "error");
@@ -168,7 +192,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
       minutes: {
         ...minutesResult,
         inputText,
-        audioFileName: mediaFileName || undefined,
+        audioFileName: audioFileName || imageFileName || undefined,
       },
       createdById: currentUser.id,
       version: selectedRec?.version,
@@ -231,7 +255,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
     showToast("議事録テキストをコピーしました ✓");
   };
 
-  // LINE WORKS / チャット共有用コピー
+  // LINE WORKS / チャット用コピー
   const handleCopyChatSummary = () => {
     if (!minutesResult) return;
     const selectedRec = meetingRecords.find((r) => r.id === selectedRecordId);
@@ -255,21 +279,29 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
     showToast("LINE WORKS / チャット用要約をコピーしました 📢");
   };
 
+  const focusSuggestions = [
+    "決定事項と担当者を重点的にまとめる",
+    "各スタッフの具体的な発言や意見の対立点を残す",
+    "理念（利用者本位・安全管理）の実践観点を強調する",
+    "次回の宿題・ToDoを箇条書きで明確にする",
+  ];
+
   const agendaRecords = meetingRecords.filter((r) => r.agenda);
 
   return (
     <div className="space-y-6">
-      {/* ステップインジケーター */}
-      <div className="flex items-center justify-between max-w-lg mx-auto mb-6 no-print">
+      {/* 4ステップ インジケーター */}
+      <div className="flex items-center justify-between max-w-xl mx-auto mb-6 no-print overflow-x-auto px-2">
         {[
-          { num: 1, label: "会議情報" },
-          { num: 2, label: "音声・写真・メモ入力" },
-          { num: 3, label: "議事録完成" },
+          { num: 1, label: "1. 会議情報" },
+          { num: 2, label: "2. 音声・文字起こし" },
+          { num: 3, label: "3. 資料写真・メモ・指示" },
+          { num: 4, label: "4. 議事録完成" },
         ].map((s, idx) => (
           <React.Fragment key={s.num}>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 flex-shrink-0">
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-all ${
                   step === s.num
                     ? "bg-clover-700 text-white shadow"
                     : step > s.num
@@ -280,19 +312,19 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
                 {step > s.num ? "✓" : s.num}
               </div>
               <span
-                className={`text-xs font-medium ${
+                className={`text-xs ${
                   step === s.num ? "text-clover-800 font-bold" : "text-slate-500"
                 }`}
               >
                 {s.label}
               </span>
             </div>
-            {idx < 2 && <div className="h-0.5 w-12 bg-slate-200"></div>}
+            {idx < 3 && <div className="h-0.5 w-6 sm:w-10 bg-slate-200 flex-shrink-0"></div>}
           </React.Fragment>
         ))}
       </div>
 
-      {/* ── STEP 1: 会議情報 ── */}
+      {/* ── STEP 1: 会議基本情報 ── */}
       {step === 1 && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
           <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
@@ -324,9 +356,10 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* 日付入力（テキスト＋カレンダーUI） */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
-                <span>📅 会議日（テキスト入力可）</span>
+                <span>📅 会議日（テキスト＆カレンダー選択）</span>
                 <div className="flex gap-1">
                   <button
                     type="button"
@@ -344,13 +377,30 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
                   </button>
                 </div>
               </label>
-              <input
-                type="text"
-                value={meetingDate}
-                onChange={(e) => setMeetingDate(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-clover-600 focus:bg-white transition"
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={meetingDate}
+                  onChange={(e) => setMeetingDate(e.target.value)}
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-clover-600 focus:bg-white transition"
+                />
+                <div className="relative">
+                  <input
+                    type="date"
+                    onChange={handleDatePickerChange}
+                    className="w-10 h-10 opacity-0 absolute inset-0 cursor-pointer z-10"
+                    title="カレンダーから選択"
+                  />
+                  <button
+                    type="button"
+                    className="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl flex items-center justify-center transition border border-slate-200"
+                  >
+                    <Calendar className="w-4 h-4 text-clover-700" />
+                  </button>
+                </div>
+              </div>
             </div>
+
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">🏢 部署</label>
               <select
@@ -410,53 +460,42 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
               onClick={() => setStep(2)}
               className="px-6 py-2.5 bg-clover-700 hover:bg-clover-800 text-white font-bold text-sm rounded-xl shadow-sm flex items-center gap-2 transition"
             >
-              次へ：音声・写真・メモ入力 <ArrowRight className="w-4 h-4" />
+              次へ：音声・文字起こし <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
       )}
 
-      {/* ── STEP 2: 入力データ ── */}
+      {/* ── STEP 2: 音声データの提出 / 録音 ➔ 文字起こし ── */}
       {step === 2 && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-5">
           <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-clover-700" />
-            ステップ 2: 会議データ（音声・ホワイトボード写真・メモ）
+            <Mic className="w-5 h-5 text-clover-700" />
+            ステップ 2: 音声データの提出 / ブラウザ録音 ➔ 文字起こし
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* ボイスメモ & 写真・資料アップローダー */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                📱 ボイスメモ / 写真（ホワイトボード・資料OCR）
+                📱 スマホのボイスメモ（iPhone .m4a / Androidレコーダー）
               </label>
               <MediaUploader
                 onFileLoaded={(data) => {
-                  setMediaFileName(data.fileName);
-                  if (data.textContent) {
-                    setInputText((prev) => (prev ? `${prev}\n\n${data.textContent}` : data.textContent!));
-                    showToast("テキストを取り込みました ✓");
-                  } else if (data.imageBase64) {
-                    setImageBase64(data.imageBase64);
-                    setImageMimeType(data.imageMimeType || "image/jpeg");
-                    showToast(`写真「${data.fileName}」を取り込みました（AIがOCR解析します）✓`);
-                  } else if (data.audioBase64) {
+                  if (data.audioBase64) {
                     setAudioBase64(data.audioBase64);
                     setAudioMimeType(data.audioMimeType || "audio/m4a");
-                    showToast(`音声「${data.fileName}」を取り込みました ✓`);
+                    setAudioFileName(data.fileName);
+                    showToast(`音声「${data.fileName}」をセットしました ✓`);
                   }
                 }}
                 onClear={() => {
                   setAudioBase64(null);
                   setAudioMimeType(null);
-                  setImageBase64(null);
-                  setImageMimeType(null);
-                  setMediaFileName(null);
+                  setAudioFileName(null);
                 }}
               />
             </div>
 
-            {/* ブラウザ直接録音 */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 🎙️ ブラウザで今すぐ録音（スリープ防止）
@@ -465,9 +504,9 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
                 onRecordingComplete={(base64, mime, liveTranscript) => {
                   setAudioBase64(base64);
                   setAudioMimeType(mime);
-                  setMediaFileName("ブラウザ録音データ.webm");
+                  setAudioFileName("ブラウザ録音データ.webm");
                   if (liveTranscript) {
-                    setInputText((prev) =>
+                    setTranscriptPreview((prev) =>
                       prev ? `${prev}\n\n${liveTranscript}` : liveTranscript
                     );
                   }
@@ -477,17 +516,18 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             </div>
           </div>
 
-          {/* テキストメモ */}
+          {/* 文字起こしプレビュー & 手動メモエリア */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              📝 テキストメモ・発言内容（任意）
+            <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+              <span>📝 文字起こしテキスト / 音声の要点（音声なしで手動入力も可）</span>
+              <span className="text-[11px] text-slate-400 font-normal">自由に加筆・修正できます</span>
             </label>
             <textarea
-              rows={6}
-              placeholder="会議中のメモや要点、発言者ごとの意見などを自由に入力してください。音声やホワイトボード写真と組み合わせることも可能です。"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:border-clover-600 focus:bg-white transition leading-relaxed"
+              rows={5}
+              placeholder="リアルタイム録音の文字起こし結果がここに表示されます。また、音声ファイルがない場合はここに会議の発言や要点を直接入力してください。"
+              value={transcriptPreview}
+              onChange={(e) => setTranscriptPreview(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:border-clover-600 focus:bg-white transition leading-relaxed font-mono"
             ></textarea>
           </div>
 
@@ -502,19 +542,115 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
 
             <button
               type="button"
+              onClick={() => setStep(3)}
+              className="px-6 py-2.5 bg-clover-700 hover:bg-clover-800 text-white font-bold text-sm rounded-xl shadow-sm flex items-center gap-2 transition"
+            >
+              次へ：資料写真・メモ・AI指示 <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP 3: 会議資料（写真・PDF）/ テキストメモの共有と指示 ── */}
+      {step === 3 && (
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-5">
+          <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+            <ImageIcon className="w-5 h-5 text-clover-700" />
+            ステップ 3: 会議資料（写真・メモ）の共有 ＆ AIへの指示
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* ホワイトボード写真・紙資料アップローダー */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                📷 ホワイトボード写真・手書きメモ・配布資料（OCR解析）
+              </label>
+              <MediaUploader
+                onFileLoaded={(data) => {
+                  if (data.imageBase64) {
+                    setImageBase64(data.imageBase64);
+                    setImageMimeType(data.imageMimeType || "image/jpeg");
+                    setImageFileName(data.fileName);
+                    showToast(`写真「${data.fileName}」を取り込みました（AIがOCR解析します）✓`);
+                  } else if (data.textContent) {
+                    setInputText((prev) => (prev ? `${prev}\n\n${data.textContent}` : data.textContent!));
+                    showToast("テキストを取り込みました ✓");
+                  }
+                }}
+                onClear={() => {
+                  setImageBase64(null);
+                  setImageMimeType(null);
+                  setImageFileName(null);
+                }}
+              />
+            </div>
+
+            {/* 追加テキストメモ */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                📝 追加テキストメモ・補足事項（任意）
+              </label>
+              <textarea
+                rows={5}
+                placeholder="会議の補足事項や、写真に関するメモがあれば入力してください。"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:border-clover-600 focus:bg-white transition leading-relaxed"
+              ></textarea>
+            </div>
+          </div>
+
+          {/* AIへの指示・フォーカスポイント */}
+          <div className="p-4 bg-purple-50/70 border border-purple-200 rounded-xl space-y-2">
+            <label className="block text-xs font-bold text-purple-900 flex items-center gap-1.5">
+              <Sliders className="w-3.5 h-3.5 text-purple-700" />
+              🎯 AIへの指示・フォーカスポイント（任意）
+            </label>
+            <input
+              type="text"
+              placeholder="例：決定事項と担当者を重点的にまとめる、議論の対立点を詳しく残す など"
+              value={aiFocusInstruction}
+              onChange={(e) => setAiFocusInstruction(e.target.value)}
+              className="w-full bg-white border border-purple-300 rounded-lg px-3 py-2 text-xs md:text-sm outline-none focus:ring-2 focus:ring-purple-500/20"
+            />
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {focusSuggestions.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setAiFocusInstruction(s)}
+                  className="px-2 py-0.5 bg-white border border-purple-200 text-purple-800 rounded-full text-[11px] hover:bg-purple-100 transition"
+                >
+                  + {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="pt-4 flex items-center justify-between border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setStep(2)}
+              className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl flex items-center gap-2 transition"
+            >
+              <ArrowLeft className="w-4 h-4" /> 戻る
+            </button>
+
+            <button
+              type="button"
               onClick={handleGenerate}
-              disabled={isLoading || (!inputText && !audioBase64 && !imageBase64)}
+              disabled={isLoading || (!audioBase64 && !transcriptPreview && !inputText && !imageBase64)}
               className="px-8 py-3 bg-clover-700 hover:bg-clover-800 disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-sm flex items-center gap-2 transition"
             >
               {isLoading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Gemini 3.5 Flash-Lite が音声/写真/メモを精査中...
+                  Gemini 3.5 Flash-Lite が議事録を作成中...
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4 text-emerald-300" />
-                  AI議事録を生成する
+                  AI議事録を作成する
                 </>
               )}
             </button>
@@ -522,8 +658,8 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
         </div>
       )}
 
-      {/* ── STEP 3: 生成結果 & 編集 ── */}
-      {step === 3 && minutesResult && (
+      {/* ── STEP 4: 議事録完成 & 編集・出力 ── */}
+      {step === 4 && minutesResult && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
             <div>
@@ -545,7 +681,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             </div>
 
             <button
-              onClick={() => setStep(2)}
+              onClick={() => setStep(3)}
               className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> データ入力に戻る
@@ -706,13 +842,13 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             </button>
             <button
               onClick={handleCopyText}
-              className="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs md:text-sm rounded-xl flex items-center gap-1.5 transition"
+              className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs md:text-sm rounded-xl flex items-center gap-1.5 transition"
             >
               <Copy className="w-4 h-4" /> 全文コピー
             </button>
             <button
               onClick={() => window.print()}
-              className="px-3 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-bold text-xs md:text-sm rounded-xl flex items-center gap-1.5 transition"
+              className="px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-bold text-xs md:text-sm rounded-xl flex items-center gap-1.5 transition"
             >
               <Printer className="w-4 h-4" /> 印刷
             </button>

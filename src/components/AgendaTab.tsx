@@ -19,6 +19,7 @@ import {
   ArrowRight,
   CalendarPlus,
   FileEdit,
+  ChevronDown,
 } from "lucide-react";
 
 interface AgendaTabProps {
@@ -27,6 +28,54 @@ interface AgendaTabProps {
   onGoToMinutes?: (agendaId: string) => void;
   showToast: (msg: string, type?: "success" | "error") => void;
 }
+
+const AGENDA_TEMPLATES = [
+  {
+    id: "teirei",
+    name: "🏢 【月次定例】事業所全体・部門ミーティング",
+    text: "【報告事項】\n・今月の稼働状況・利用者数・目標達成状況\n・ヒヤリハット・インシデント報告と傾向分析\n\n【検討・決定事項】\n・新規スタッフの同行・研修計画について\n・業務フロー見直し（申し送り手順・書類電子化）\n\n【その他・共有】\n・次回勉強会のテーマ検討\n・理念（クローバーイズム）に基づく現場実践の振り返り",
+  },
+  {
+    id: "moushiokuri",
+    name: "📋 【日次申し送り】業務引き継ぎ・日々の連携",
+    text: "【本日の重要申し送り】\n・体調変化・特記のあった利用者様について\n・受診予定・送迎時間・サービス内容の変更点\n\n【スタッフ間業務連携】\n・本日のフォロー体制・業務分担\n・備品・衛生用品の在庫確認",
+  },
+  {
+    id: "gyoumu",
+    name: "💡 【業務ミーティング】業務改善・残業削減・ICT化",
+    text: "【現状の課題】\n・記録作成や申し送りの時間短縮について\n・直行直帰やシフト調整の円滑化\n\n【改善アイデアの検討】\n・スマホ活用（音声入力・チャット報告）のルール決め\n・無駄な書類・転記作業の削減案\n\n【アクションプラン】\n・トライアル期間と担当者の選定",
+  },
+  {
+    id: "conference",
+    name: "👤 【利用者カンファレンス】状態変化・ケアプラン見直し",
+    text: "【対象者情報・現状報告】\n・ADL（日常生活動作）・認知機能の変化について\n・主治医意見・看護リハビリからの評価\n\n【課題と支援方針の検討】\n・本人の希望・ご家族の意向のすり合わせ\n・ケアプランの変更ポイントと目標設定\n\n【決定事項】\n・各担当職種（看護・リハ・ヘルパー・ケアマネ）のアクション",
+  },
+  {
+    id: "incident",
+    name: "🚨 【事故・ヒヤリハット検討会】原因究明と再発防止",
+    text: "【発生事象の時系列整理】\n・発生日時・場所・状況・初期対応の確認\n\n【要因分析（なぜなぜ分析）】\n・環境要因（床・動線・照明など）\n・人的要因（体調・手順・確認不足など）\n・組織的要因（引き継ぎ・人員体制）\n\n【具体的な再発防止策】\n・即時対応できる改善策\n・マニュアル更新と全職員への周知方法",
+  },
+  {
+    id: "kansen",
+    name: "🛡️ 【感染症対策委員会】衛生管理・マニュアル確認",
+    text: "【衛生・感染状況の確認】\n・事業所内および地域での感染症流行状況\n・消毒液・PPE（防護具）の備蓄数確認\n\n【対策の徹底・見直し】\n・職員・利用者の健康チェック体制の再確認\n・陽性者・発熱者発生時の初動フロー確認\n\n【研修・周知】\n・手洗い・個人防護具着脱の職員ミニ研修計画",
+  },
+  {
+    id: "gyakutai",
+    name: "🕊️ 【身体拘束廃止・虐待防止委員会】権利擁護・研修",
+    text: "【現場の実態把握・ヒアリング】\n・不適切なケアやスピーチロック（言葉の拘束）の有無\n・ストレスの高いケア場面の洗い出しとサポート策\n\n【事例検討】\n・対応に苦慮した事例の共有とポジティブなアプローチ検討\n\n【決定事項】\n・権利擁護マニュアルの周知と定期チェックシートの運用",
+  },
+  {
+    id: "kanriha",
+    name: "🩺 【看リハ合同ミーティング】看護・リハビリ連携",
+    text: "【医療・リハ連携の重要ケース検討】\n・バイタル・服薬管理・皮膚トラブルの共有\n・リハビリプログラムの進捗と日常生活への反映\n\n【多職種協働の課題】\n・ケアマネ・ヘルパーへのフィードバック手順\n・緊急時対応手順のブラッシュアップ",
+  },
+  {
+    id: "oneonone",
+    name: "🤝 【1on1・個別面談】業務振り返り・キャリア支援",
+    text: "【最近の業務の振り返り】\n・うまくいっていること・手応えを感じている業務\n・困っていること・不安や負担に感じている点\n\n【成長支援・目標設定】\n・今後挑戦したい分野・資格取得\n・事業所・上長に期待するサポート",
+  },
+];
 
 export const AgendaTab: React.FC<AgendaTabProps> = ({
   currentUser,
@@ -44,8 +93,14 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
   const [meetingType, setMeetingType] = useState(DEFAULT_MEETING_TYPES[0]);
   const [customMeetingType, setCustomMeetingType] = useState("");
   const [participants, setParticipants] = useState("");
+  
+  // 時間設定（テキスト ＆ タイムピッカーUI）
   const [duration, setDuration] = useState("10:00〜11:00（1時間）");
+  const [startTime, setStartTime] = useState("10:00");
+  const [endTime, setEndTime] = useState("11:00");
+
   const [topics, setTopics] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
   const [generatedAgenda, setGeneratedAgenda] = useState<AgendaDetails | null>(null);
@@ -61,22 +116,32 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
     setMeetingDate(`${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`);
   };
 
-  // 議題テンプレート挿入
-  const insertTemplate = (type: string) => {
-    if (type === "teirei") {
-      setTopics(
-        "【報告事項】\n・今月の稼働状況・目標達成状況\n・ヒヤリハット・インシデント報告\n\n【検討・決定事項】\n・新スタッフの同行・研修計画\n・業務フロー見直し（申し送り手順）\n\n【その他】\n・次回勉強会のテーマ"
-      );
-    } else if (type === "moushiokuri") {
-      setTopics(
-        "【本日の重要申し送り】\n・体調変化・特記のある利用者様について\n・受診予定・送迎時間の変更点\n・スタッフ間の業務分担・引き継ぎ"
-      );
-    } else if (type === "iinkai") {
-      setTopics(
-        "【事故防止・感染対策・身体拘束廃止委員会】\n・前月のヒヤリハット集計と分析\n・具体的な再発防止策の立案と周知\n・感染症発生時の初動フロー再確認\n・職員向けミニ研修の実施計画"
-      );
+  // カレンダーUIからの日付更新
+  const handleDatePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.value) return;
+    const parts = e.target.value.split("-");
+    if (parts.length === 3) {
+      setMeetingDate(`${parts[0]}/${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)}`);
     }
-    showToast("議題テンプレートを挿入しました ✓");
+  };
+
+  // タイムピッカーからの更新
+  const handleTimeChange = (newStart: string, newEnd: string) => {
+    setStartTime(newStart);
+    setEndTime(newEnd);
+    if (newStart && newEnd) {
+      setDuration(`${newStart}〜${newEnd}`);
+    }
+  };
+
+  // テンプレート選択
+  const handleSelectTemplate = (tmplId: string) => {
+    setSelectedTemplateId(tmplId);
+    const tmpl = AGENDA_TEMPLATES.find((t) => t.id === tmplId);
+    if (tmpl) {
+      setTopics(tmpl.text);
+      showToast(`「${tmpl.name.slice(0, 15)}...」を適用しました ✓`);
+    }
   };
 
   const handleGenerate = async () => {
@@ -193,15 +258,6 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
     window.open(url, "_blank");
   };
 
-  const durationSuggestions = [
-    "30分",
-    "45分",
-    "1時間",
-    "10:00〜11:00",
-    "13:30〜14:30",
-    "17:00〜17:30",
-  ];
-
   return (
     <div className="space-y-6">
       {/* 入力フォーム */}
@@ -212,10 +268,10 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          {/* 日付入力（テキスト＋クイックボタン） */}
+          {/* 日付入力（テキスト ＋ カレンダーUI ＋ クイックボタン） */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
-              <span>📅 会議日（テキスト入力可）</span>
+              <span>📅 会議日（テキスト＆カレンダー選択）</span>
               <div className="flex gap-1">
                 <button
                   type="button"
@@ -240,13 +296,29 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
                 </button>
               </div>
             </label>
-            <input
-              type="text"
-              placeholder="例：2026/8/21 または 8/21"
-              value={meetingDate}
-              onChange={(e) => setMeetingDate(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-clover-600 focus:bg-white transition"
-            />
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="2026/8/21"
+                value={meetingDate}
+                onChange={(e) => setMeetingDate(e.target.value)}
+                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-clover-600 focus:bg-white transition"
+              />
+              <div className="relative">
+                <input
+                  type="date"
+                  onChange={handleDatePickerChange}
+                  className="w-10 h-10 opacity-0 absolute inset-0 cursor-pointer z-10"
+                  title="カレンダーから選択"
+                />
+                <button
+                  type="button"
+                  className="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl flex items-center justify-center transition border border-slate-200"
+                >
+                  <Calendar className="w-4 h-4 text-clover-700" />
+                </button>
+              </div>
+            </div>
           </div>
 
           <div>
@@ -303,18 +375,39 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
           </div>
         </div>
 
-        {/* 予定時間 / 所要時間 */}
+        {/* 予定時間（テキスト ＋ 開始・終了時間UI ＋ サジェスト） */}
         <div className="mb-4">
-          <label className="block text-xs font-bold text-slate-700 mb-1">⏱️ 予定時間 / 所要時間</label>
-          <input
-            type="text"
-            placeholder="例：10:00〜11:00（1時間）"
-            value={duration}
-            onChange={(e) => setDuration(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm outline-none focus:border-clover-600 focus:bg-white transition mb-1.5"
-          />
+          <label className="block text-xs font-bold text-slate-700 mb-1">
+            ⏱️ 予定時間 / 所要時間（テキストまたは時間選択）
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+            <input
+              type="text"
+              placeholder="例：10:00〜11:00（1時間）"
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm outline-none focus:border-clover-600 focus:bg-white transition"
+            />
+            {/* 時間ピッカーUI */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
+              <Clock className="w-3.5 h-3.5 text-slate-400" />
+              <input
+                type="time"
+                value={startTime}
+                onChange={(e) => handleTimeChange(e.target.value, endTime)}
+                className="bg-transparent text-xs font-medium outline-none text-slate-700 cursor-pointer"
+              />
+              <span className="text-xs text-slate-400">〜</span>
+              <input
+                type="time"
+                value={endTime}
+                onChange={(e) => handleTimeChange(startTime, e.target.value)}
+                className="bg-transparent text-xs font-medium outline-none text-slate-700 cursor-pointer"
+              />
+            </div>
+          </div>
           <div className="flex flex-wrap gap-1.5">
-            {durationSuggestions.map((s) => (
+            {["30分", "45分", "1時間", "1時間30分", "2時間"].map((s) => (
               <button
                 key={s}
                 type="button"
@@ -327,43 +420,35 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
           </div>
         </div>
 
-        {/* 議題メモ（テンプレボタン付き） */}
+        {/* 議題メモ（ドロップダウン式テンプレート選択付き） */}
         <div className="mb-5">
-          <div className="flex items-center justify-between mb-1">
-            <label className="text-xs font-bold text-slate-700">
-              📝 今回話したいこと・背景・議題メモ
+          <div className="mb-2">
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              💡 介護事業所向け 議題テンプレート（ドロップダウンから選択可能）
             </label>
-            <div className="flex items-center gap-1">
-              <span className="text-[11px] text-slate-400">テンプレ挿入:</span>
-              <button
-                type="button"
-                onClick={() => insertTemplate("teirei")}
-                className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px]"
-              >
-                定例
-              </button>
-              <button
-                type="button"
-                onClick={() => insertTemplate("moushiokuri")}
-                className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px]"
-              >
-                申し送り
-              </button>
-              <button
-                type="button"
-                onClick={() => insertTemplate("iinkai")}
-                className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px]"
-              >
-                委員会
-              </button>
-            </div>
+            <select
+              value={selectedTemplateId}
+              onChange={(e) => handleSelectTemplate(e.target.value)}
+              className="w-full bg-clover-50/70 border border-clover-300 rounded-xl px-3 py-2 text-xs md:text-sm text-clover-900 font-medium outline-none focus:ring-2 focus:ring-clover-500/20"
+            >
+              <option value="">― テンプレートを選択して議題に流し込む ―</option>
+              {AGENDA_TEMPLATES.map((tmpl) => (
+                <option key={tmpl.id} value={tmpl.id}>
+                  {tmpl.name}
+                </option>
+              ))}
+            </select>
           </div>
+
+          <label className="block text-xs font-bold text-slate-700 mb-1">
+            📝 今回話したいこと・背景・議題メモ（自由に編集・追記可能）
+          </label>
           <textarea
             rows={5}
             placeholder="例：&#10;・今月のヒヤリハット報告（転倒リスクの再確認）&#10;・新スタッフ2名の同行スケジュール決定&#10;・送迎ルート見直しの進捗確認"
             value={topics}
             onChange={(e) => setTopics(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:border-clover-600 focus:bg-white transition leading-relaxed"
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:border-clover-600 focus:bg-white transition leading-relaxed font-mono"
           ></textarea>
         </div>
 
