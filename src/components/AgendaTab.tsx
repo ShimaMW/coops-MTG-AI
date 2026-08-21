@@ -575,6 +575,9 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
             </label>
             <div className="flex-1 flex flex-col">
               <MediaUploader
+                title="事前資料を選択"
+                subtitle="PDF・Word・ホワイトボード写真・企画メモ等 (.pdf, .jpg, .txt)"
+                accept="image/*,application/pdf,.pdf,text/plain,.txt,.md,.csv,.doc,.docx"
                 onFileLoaded={(data) => {
                   if (data.imageBase64) {
                     setImageBase64(data.imageBase64);

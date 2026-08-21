@@ -546,6 +546,9 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
               </label>
               <div className="flex-1 flex flex-col">
                 <MediaUploader
+                  title="ボイスメモを選択"
+                  subtitle="ボイスメモ (.m4a, .mp3, .wav, .aac)"
+                  accept="audio/*,.m4a,.mp3,.wav,.aac,.webm"
                   onFileLoaded={(data) => {
                     if (data.audioBase64) {
                       setAudioBase64(data.audioBase64);
@@ -647,16 +650,19 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             {/* 写真アップローダー */}
             <div className="flex flex-col h-full">
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                📷 ホワイトボード写真・手書きメモ・配布資料（OCR解析）
+                📷 ホワイトボード写真・手書きメモ・配布資料（OCR/PDF解析）
               </label>
               <div className="flex-1 flex flex-col">
                 <MediaUploader
+                  title="会議資料・写真を選択"
+                  subtitle="ホワイトボード写真・配布PDF・メモ (.jpg, .pdf, .txt)"
+                  accept="image/*,application/pdf,.pdf,text/plain,.txt,.md,.csv,.doc,.docx"
                   onFileLoaded={(data) => {
                     if (data.imageBase64) {
                       setImageBase64(data.imageBase64);
                       setImageMimeType(data.imageMimeType || "image/jpeg");
                       setImageFileName(data.fileName);
-                      showToast(`写真「${data.fileName}」を取り込みました（AIがOCR解析します）✓`);
+                      showToast(`資料「${data.fileName}」を取り込みました（AIが解析します）✓`);
                     } else if (data.textContent) {
                       setInputText((prev) => (prev ? `${prev}\n\n${data.textContent}` : data.textContent!));
                       showToast("テキストを取り込みました ✓");
