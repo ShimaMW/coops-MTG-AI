@@ -229,11 +229,15 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
         </div>
       </div>
 
-      {/* ── 詳細閲覧モーダル（大画面ワイド＆フルスクリーン対応・トンマナ統一） ── */}
+      {/* ── 詳細閲覧モーダル（大画面ワイド＆フルスクリーン対応・外側クリックで閉じる） ── */}
       {selectedRecord && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+        <div
+          onClick={() => setSelectedRecord(null)}
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto cursor-pointer"
+        >
           <div
-            className={`bg-white rounded-2xl flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-150 transition-all ${
+            onClick={(e) => e.stopPropagation()}
+            className={`bg-white rounded-2xl flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-150 transition-all cursor-default ${
               isFullScreen
                 ? "w-[98vw] h-[96vh] max-w-none max-h-none"
                 : "max-w-5xl w-full max-h-[90vh]"
