@@ -23,32 +23,20 @@ export const Navbar: React.FC<NavbarProps> = ({
           alt="COOPs"
           className="h-8 md:h-9 w-auto object-contain drop-shadow-sm"
           onError={(e) => {
-            // 画像ロード失敗時のフォールバック
             (e.target as HTMLElement).style.display = "none";
           }}
         />
-        <div className="h-6 w-px bg-white/20 hidden sm:block"></div>
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-sm md:text-base font-bold tracking-tight text-white">
-              AI議事録アシスタント
-            </h1>
-            <span className="bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-emerald-400" />
-              Gemini 3.5
-            </span>
-          </div>
-          <p className="text-[11px] text-slate-300">
-            2026年度 経営ケアプラン -クローバー2.0- 連携システム
-          </p>
-        </div>
+        <div className="h-5 w-px bg-white/20"></div>
+        <h1 className="text-base md:text-lg font-bold tracking-tight text-white">
+          会議議事録AI
+        </h1>
       </div>
 
       {/* ユーザー & 権限切替 */}
       <div className="flex items-center gap-3 ml-auto">
         <div className="flex items-center bg-black/30 border border-white/15 rounded-xl px-3 py-1.5 gap-2.5 text-xs shadow-inner">
-          <div className="flex items-center gap-1 text-emerald-400 font-bold">
-            <Shield className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-1.5 text-slate-200 font-medium">
+            <Shield className="w-3.5 h-3.5 text-slate-300" />
             <span>{currentUser.role === "admin" ? "本部（全閲覧）" : "部署スタッフ"}</span>
           </div>
 

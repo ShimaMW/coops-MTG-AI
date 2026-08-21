@@ -35,7 +35,7 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
                 : "text-slate-300 hover:text-white hover:bg-white/10"
             }`}
           >
-            <Icon className={`w-4 h-4 ${isActive ? "text-emerald-700" : "text-slate-400"}`} />
+            <Icon className={`w-4 h-4 ${isActive ? "text-slate-800" : "text-slate-400"}`} />
             <span>{tab.label}</span>
           </button>
         );

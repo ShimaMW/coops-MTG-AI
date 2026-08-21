@@ -125,7 +125,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-clover-700 text-white font-bold">
+              <tr className="bg-[#283136] text-white font-bold">
                 <th className="py-3 px-4 whitespace-nowrap">開催日</th>
                 <th className="py-3 px-4">部署</th>
                 <th className="py-3 px-4">会議種別</th>
@@ -227,7 +227,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
       {selectedRecord && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-150">
-            <div className="p-4 bg-clover-700 text-white flex items-center justify-between">
+            <div className="p-4 bg-[#283136] text-white flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-sm md:text-base">
                   {modalTab === "minutes" ? "📝 議事録" : "📋 アジェンダ"}｜{selectedRecord.dept} {selectedRecord.meetingType}

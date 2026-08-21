@@ -546,7 +546,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
             type="button"
             onClick={handleGenerate}
             disabled={isLoading}
-            className="w-full sm:w-auto px-8 py-3 bg-clover-700 hover:bg-clover-800 disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-sm flex items-center justify-center gap-2 mx-auto transition"
+            className="w-full sm:w-auto px-8 py-3 bg-[#283136] hover:bg-[#1c2226] disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-md flex items-center justify-center gap-2 mx-auto transition"
           >
             {isLoading ? (
               <>
@@ -555,7 +555,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
               </>
             ) : (
               <>
-                <Sparkles className="w-4 h-4 text-emerald-300" />
+                <Sparkles className="w-4 h-4 text-slate-300" />
                 AIアジェンダを生成する
               </>
             )}
@@ -670,8 +670,8 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
               disabled={saveStatus === "saving"}
               className={`px-5 py-2.5 font-bold text-xs md:text-sm rounded-xl shadow-sm flex items-center gap-2 transition ${
                 saveStatus === "saved"
-                  ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                  : "bg-clover-700 hover:bg-clover-800 text-white"
+                  ? "bg-slate-700 text-white hover:bg-slate-800"
+                  : "bg-[#283136] hover:bg-[#1c2226] text-white"
               }`}
             >
               {saveStatus === "saving" ? (
