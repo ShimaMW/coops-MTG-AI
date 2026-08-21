@@ -1,9 +1,8 @@
-import { AgendaData, MinutesData, MasterData, UserProfile } from "./types";
+import { MeetingRecord, MasterData, UserProfile, AgendaDetails, MinutesDetails } from "./types";
 
-const MASTER_STORAGE_KEY = "coops_master_data_v1";
-const AGENDA_STORAGE_KEY = "coops_agenda_data_v1";
-const MINUTES_STORAGE_KEY = "coops_minutes_data_v1";
-const CURRENT_USER_KEY = "coops_current_user_v1";
+const MASTER_STORAGE_KEY = "coops_master_data_v2";
+const MEETINGS_STORAGE_KEY = "coops_meetings_data_v2";
+const CURRENT_USER_KEY = "coops_current_user_v2";
 
 export const DEFAULT_MASTER_DATA: MasterData = {
   departments: [
@@ -65,7 +64,7 @@ export function saveMasterData(data: MasterData): void {
 }
 
 // ==========================================
-// ユーザー情報 & 権限
+// ユーザー情報
 // ==========================================
 export function getCurrentUser(): UserProfile {
   if (typeof window === "undefined") return DEFAULT_CURRENT_USER;
@@ -87,128 +86,174 @@ export function saveCurrentUser(user: UserProfile): void {
 }
 
 // ==========================================
-// アジェンダ
+// 会議レコード一覧（アジェンダ ＆ 議事録統合）
 // ==========================================
-export function getAgendas(): AgendaData[] {
+export function getMeetingRecords(): MeetingRecord[] {
   if (typeof window === "undefined") return [];
-  const raw = localStorage.getItem(AGENDA_STORAGE_KEY);
+  const raw = localStorage.getItem(MEETINGS_STORAGE_KEY);
   if (!raw) return [];
   try {
-    const list: AgendaData[] = JSON.parse(raw);
+    const list: MeetingRecord[] = JSON.parse(raw);
     return list.sort((a, b) => b.meetingDate.localeCompare(a.meetingDate));
   } catch {
     return [];
   }
 }
 
-export function saveAgendaItem(item: Omit<AgendaData, "id" | "createdAt" | "updatedAt"> & { id?: string }): AgendaData {
-  const list = getAgendas();
+// ==========================================
+// アジェンダ保存
+// ==========================================
+export function saveAgendaRecord(params: {
+  id?: string;
+  meetingDate: string;
+  dept: string;
+  meetingType: string;
+  participants: string[];
+  clientName?: string;
+  duration?: string;
+  userTopics?: string;
+  agenda: AgendaDetails;
+  createdById?: string;
+}): { success: boolean; data: MeetingRecord; error?: string } {
+  const list = getMeetingRecords();
   const now = new Date().toISOString();
-  let saved: AgendaData;
+  let record: MeetingRecord;
 
-  if (item.id) {
-    const idx = list.findIndex((x) => x.id === item.id);
+  if (params.id) {
+    const idx = list.findIndex((r) => r.id === params.id);
     if (idx >= 0) {
-      saved = {
+      record = {
         ...list[idx],
-        ...item,
+        meetingDate: params.meetingDate,
+        dept: params.dept,
+        meetingType: params.meetingType,
+        participants: params.participants,
+        clientName: params.clientName,
+        duration: params.duration,
+        userTopics: params.userTopics,
+        agenda: params.agenda,
+        agendaCreatedAt: list[idx].agendaCreatedAt || now,
         updatedAt: now,
-      } as AgendaData;
-      list[idx] = saved;
+        version: (list[idx].version || 1) + 1,
+      };
+      list[idx] = record;
     } else {
-      saved = {
-        ...item,
-        id: item.id,
-        createdAt: now,
-        updatedAt: now,
-      } as AgendaData;
-      list.push(saved);
+      record = createNewAgendaRecord(params, now);
+      list.unshift(record);
     }
   } else {
-    saved = {
-      ...item,
-      id: "ag_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
-      createdAt: now,
-      updatedAt: now,
-    } as AgendaData;
-    list.unshift(saved);
+    record = createNewAgendaRecord(params, now);
+    list.unshift(record);
   }
 
-  localStorage.setItem(AGENDA_STORAGE_KEY, JSON.stringify(list));
-  return saved;
+  localStorage.setItem(MEETINGS_STORAGE_KEY, JSON.stringify(list));
+  return { success: true, data: record };
 }
 
-export function deleteAgendaItem(id: string): void {
-  const list = getAgendas().filter((x) => x.id !== id);
-  localStorage.setItem(AGENDA_STORAGE_KEY, JSON.stringify(list));
+function createNewAgendaRecord(params: any, now: string): MeetingRecord {
+  return {
+    id: "rec_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
+    meetingDate: params.meetingDate,
+    dept: params.dept,
+    meetingType: params.meetingType,
+    participants: params.participants,
+    clientName: params.clientName,
+    duration: params.duration,
+    userTopics: params.userTopics,
+    agenda: params.agenda,
+    agendaCreatedAt: now,
+    status: "agenda_only",
+    version: 1,
+    createdAt: now,
+    updatedAt: now,
+    createdById: params.createdById,
+  };
 }
 
 // ==========================================
-// 議事録（楽観的ロック・競合防止付き）
+// 議事録保存（アジェンダとの紐付け・ステータス更新・楽観的ロック）
 // ==========================================
-export function getMinutesList(): MinutesData[] {
-  if (typeof window === "undefined") return [];
-  const raw = localStorage.getItem(MINUTES_STORAGE_KEY);
-  if (!raw) return [];
-  try {
-    const list: MinutesData[] = JSON.parse(raw);
-    return list.sort((a, b) => b.meetingDate.localeCompare(a.meetingDate));
-  } catch {
-    return [];
-  }
-}
-
-export function saveMinutesItem(
-  item: Omit<MinutesData, "id" | "createdAt" | "updatedAt" | "version"> & { id?: string; version?: number }
-): { success: boolean; data?: MinutesData; error?: string } {
-  const list = getMinutesList();
+export function saveMinutesRecord(params: {
+  recordId?: string; // 紐付けるアジェンダ/会議レコードのID
+  meetingDate: string;
+  dept: string;
+  meetingType: string;
+  participants: string[];
+  clientName?: string;
+  minutes: MinutesDetails;
+  createdById?: string;
+  version?: number;
+}): { success: boolean; data: MeetingRecord; message: string; error?: string } {
+  const list = getMeetingRecords();
   const now = new Date().toISOString();
-  let saved: MinutesData;
+  let record: MeetingRecord;
 
-  if (item.id) {
-    const idx = list.findIndex((x) => x.id === item.id);
+  if (params.recordId) {
+    const idx = list.findIndex((r) => r.id === params.recordId);
     if (idx >= 0) {
-      const current = list[idx];
-      // 楽観的ロック：バージョンチェック
-      if (item.version !== undefined && item.version !== current.version) {
+      const existing = list[idx];
+      // 楽観的ロックチェック
+      if (params.version !== undefined && params.version !== existing.version) {
         return {
           success: false,
+          data: existing,
+          message: "競合エラー",
           error: "他のユーザーまたは別タブによってデータが更新されています。最新データを読み込み直してください。",
         };
       }
-      saved = {
-        ...current,
-        ...item,
-        version: (current.version || 1) + 1,
+
+      record = {
+        ...existing,
+        meetingDate: params.meetingDate,
+        dept: params.dept,
+        meetingType: params.meetingType,
+        participants: params.participants,
+        clientName: params.clientName,
+        minutes: params.minutes,
+        minutesCreatedAt: now,
+        status: "minutes_completed",
+        version: (existing.version || 1) + 1,
         updatedAt: now,
-      } as MinutesData;
-      list[idx] = saved;
-    } else {
-      saved = {
-        ...item,
-        id: item.id,
-        version: 1,
-        createdAt: now,
-        updatedAt: now,
-      } as MinutesData;
-      list.push(saved);
+      };
+      list[idx] = record;
+      localStorage.setItem(MEETINGS_STORAGE_KEY, JSON.stringify(list));
+      return {
+        success: true,
+        data: record,
+        message: "既存のアジェンダに紐づけて議事録を保存しました ✓",
+      };
     }
-  } else {
-    saved = {
-      ...item,
-      id: "min_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
-      version: 1,
-      createdAt: now,
-      updatedAt: now,
-    } as MinutesData;
-    list.unshift(saved);
   }
 
-  localStorage.setItem(MINUTES_STORAGE_KEY, JSON.stringify(list));
-  return { success: true, data: saved };
+  // 新規レコードとして作成
+  record = {
+    id: "rec_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
+    meetingDate: params.meetingDate,
+    dept: params.dept,
+    meetingType: params.meetingType,
+    participants: params.participants,
+    clientName: params.clientName,
+    minutes: params.minutes,
+    minutesCreatedAt: now,
+    status: "minutes_completed",
+    version: 1,
+    createdAt: now,
+    updatedAt: now,
+    createdById: params.createdById,
+  };
+  list.unshift(record);
+  localStorage.setItem(MEETINGS_STORAGE_KEY, JSON.stringify(list));
+  return {
+    success: true,
+    data: record,
+    message: "議事録を新規保存しました ✓",
+  };
 }
 
-export function deleteMinutesItem(id: string): void {
-  const list = getMinutesList().filter((x) => x.id !== id);
-  localStorage.setItem(MINUTES_STORAGE_KEY, JSON.stringify(list));
+// ==========================================
+// 削除
+// ==========================================
+export function deleteMeetingRecord(id: string): void {
+  const list = getMeetingRecords().filter((r) => r.id !== id);
+  localStorage.setItem(MEETINGS_STORAGE_KEY, JSON.stringify(list));
 }

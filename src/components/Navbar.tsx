@@ -2,7 +2,7 @@
 
 import React from "react";
 import { UserProfile, UserRole } from "@/lib/types";
-import { Sparkles, Shield, UserCheck, Printer } from "lucide-react";
+import { Sparkles, Shield } from "lucide-react";
 
 interface NavbarProps {
   currentUser: UserProfile;
@@ -33,7 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
 
-      {/* ユーザー & 権限切替（デモ・運用兼用） */}
+      {/* ユーザー & 権限切替 */}
       <div className="flex items-center gap-3 ml-auto">
         <div className="flex items-center bg-black/20 border border-white/15 rounded-xl px-3 py-1.5 gap-2.5 text-xs">
           <div className="flex items-center gap-1 text-emerald-300 font-medium">

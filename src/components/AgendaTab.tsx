@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { MasterData, AgendaData, UserProfile } from "@/lib/types";
-import { saveAgendaItem } from "@/lib/storage";
-import { getAgendaPlainText, formatJPDate } from "@/lib/exportUtils";
+import { MasterData, UserProfile, AgendaDetails } from "@/lib/types";
+import { saveAgendaRecord } from "@/lib/storage";
+import { formatJPDate } from "@/lib/exportUtils";
 import {
   Sparkles,
   Save,
@@ -16,12 +16,14 @@ import {
   Users,
   Target,
   FileCheck,
+  ArrowRight,
 } from "lucide-react";
 
 interface AgendaTabProps {
   masterData: MasterData;
   currentUser: UserProfile;
-  onSaved: () => void;
+  onSaved: (createdId?: string) => void;
+  onGoToMinutes?: (agendaId: string) => void;
   showToast: (msg: string, type?: "success" | "error") => void;
 }
 
@@ -29,6 +31,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
   masterData,
   currentUser,
   onSaved,
+  onGoToMinutes,
   showToast,
 }) => {
   const today = new Date().toISOString().split("T")[0];
@@ -42,7 +45,9 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
   const [topics, setTopics] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
-  const [generatedAgenda, setGeneratedAgenda] = useState<any | null>(null);
+  const [generatedAgenda, setGeneratedAgenda] = useState<AgendaDetails | null>(null);
+  const [savedRecordId, setSavedRecordId] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
   // 部署変更時に参加者をリセット
   const deptEmployees = masterData.employees.filter((e) => e.dept === dept);
@@ -64,6 +69,9 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
     }
 
     setIsLoading(true);
+    setSaveStatus("idle");
+    setSavedRecordId(null);
+
     try {
       const res = await fetch("/api/agenda/generate", {
         method: "POST",
@@ -97,51 +105,59 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
   const handleSave = () => {
     if (!generatedAgenda) return;
 
-    saveAgendaItem({
-      meetingDate,
-      dept,
-      meetingType,
-      participants,
-      clientName,
-      duration,
-      topics,
-      title: generatedAgenda.title || `${dept} ${meetingType}`,
-      purpose: generatedAgenda.purpose || "",
-      outcome: generatedAgenda.outcome || "",
-      review: generatedAgenda.review || "",
-      agenda_items: generatedAgenda.agenda_items || "",
-      closing: generatedAgenda.closing || "",
-      full_text: generatedAgenda.full_text || "",
-      createdById: currentUser.id,
-    });
+    setSaveStatus("saving");
 
-    showToast("アジェンダを保存しました ✓");
-    onSaved();
+    try {
+      const res = saveAgendaRecord({
+        id: savedRecordId || undefined,
+        meetingDate,
+        dept,
+        meetingType,
+        participants,
+        clientName,
+        duration,
+        userTopics: topics,
+        agenda: generatedAgenda,
+        createdById: currentUser.id,
+      });
+
+      if (res.success) {
+        setSavedRecordId(res.data.id);
+        setSaveStatus("saved");
+        showToast("アジェンダを保存しました ✓", "success");
+        onSaved(res.data.id);
+      }
+    } catch (err: any) {
+      setSaveStatus("idle");
+      showToast("保存エラー: " + err.message, "error");
+    }
   };
 
   const handleCopy = () => {
     if (!generatedAgenda) return;
-    const text = getAgendaPlainText({
-      id: "",
-      meetingDate,
-      dept,
-      meetingType,
-      participants,
-      clientName,
-      duration,
-      topics,
-      title: generatedAgenda.title,
-      purpose: generatedAgenda.purpose,
-      outcome: generatedAgenda.outcome,
-      review: generatedAgenda.review,
-      agenda_items: generatedAgenda.agenda_items,
-      closing: generatedAgenda.closing,
-      full_text: generatedAgenda.full_text,
-      createdAt: "",
-      updatedAt: "",
-    });
+    const text = [
+      `【COOPs 会議アジェンダ】`,
+      `会議日: ${formatJPDate(meetingDate)}`,
+      `部署: ${dept} / 種別: ${meetingType}`,
+      `参加者: ${participants.join("、") || "（未指定）"}${clientName ? ` / 対象利用者: ${clientName}` : ""}`,
+      `所要時間: ${duration || "未定"}`,
+      "",
+      "🎯 【目的】",
+      generatedAgenda.purpose,
+      "",
+      "🏁 【達成したい成果】",
+      generatedAgenda.outcome,
+      "",
+      generatedAgenda.review ? `🔄 【前回の振り返り】\n${generatedAgenda.review}\n` : "",
+      "📋 【各議題】",
+      generatedAgenda.agenda_items,
+      "",
+      "🏁 【クロージング】",
+      generatedAgenda.closing,
+    ].filter(Boolean).join("\n");
+
     navigator.clipboard.writeText(text);
-    showToast("アジェンダをクリップボードにコピーしました ✓");
+    showToast("アジェンダをコピーしました ✓");
   };
 
   const durations = ["30分", "45分", "1時間", "1時間30分", "2時間"];
@@ -303,7 +319,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
             {isLoading ? (
               <>
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                AIがアジェンダを設計中...
+                Gemini 3.5 Flash-Lite がアジェンダを設計中...
               </>
             ) : (
               <>
@@ -396,13 +412,50 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
             />
           </div>
 
+          {/* 保存ステータスバナー */}
+          {saveStatus === "saved" && (
+            <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold text-emerald-800">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                アジェンダがログ一覧に正常保存されました！
+              </div>
+              {onGoToMinutes && savedRecordId && (
+                <button
+                  type="button"
+                  onClick={() => onGoToMinutes(savedRecordId)}
+                  className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition"
+                >
+                  このアジェンダで議事録を作成 <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          )}
+
           {/* アクションボタン */}
           <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-100 no-print">
             <button
               onClick={handleSave}
-              className="px-5 py-2.5 bg-clover-700 hover:bg-clover-800 text-white font-bold text-xs md:text-sm rounded-xl shadow-sm flex items-center gap-2 transition"
+              disabled={saveStatus === "saving"}
+              className={`px-5 py-2.5 font-bold text-xs md:text-sm rounded-xl shadow-sm flex items-center gap-2 transition ${
+                saveStatus === "saved"
+                  ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                  : "bg-clover-700 hover:bg-clover-800 text-white"
+              }`}
             >
-              <Save className="w-4 h-4" /> アジェンダを保存する
+              {saveStatus === "saving" ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  保存中...
+                </>
+              ) : saveStatus === "saved" ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-white" /> 保存完了（更新する）
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" /> アジェンダを保存する
+                </>
+              )}
             </button>
             <button
               onClick={handleCopy}

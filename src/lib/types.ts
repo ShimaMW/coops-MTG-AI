@@ -22,15 +22,7 @@ export interface MeetingType {
   desc: string;
 }
 
-export interface AgendaData {
-  id: string;
-  meetingDate: string;
-  dept: string;
-  meetingType: string;
-  participants: string[];
-  clientName?: string;
-  duration?: string;
-  topics: string;
+export interface AgendaDetails {
   title: string;
   purpose: string;
   outcome: string;
@@ -38,35 +30,43 @@ export interface AgendaData {
   agenda_items: string;
   closing: string;
   full_text: string;
-  createdAt: string;
-  updatedAt: string;
-  createdById?: string;
 }
 
-export interface MinutesData {
+export interface MinutesDetails {
+  inputText?: string;
+  audioFileName?: string;
+  transcript?: string;
+  summary: string;
+  agenda_items: string;
+  key_discussions: string;
+  action_plans: string;
+  culture_notes: string;
+  next_agenda: string;
+  facilitator_feedback: string;
+}
+
+// アジェンダと議事録が紐づく統合レコード
+export interface MeetingRecord {
   id: string;
-  agendaRecordId?: string;
   meetingDate: string;
   dept: string;
   meetingType: string;
   participants: string[];
   clientName?: string;
-  inputText?: string;
-  audioFileUri?: string;
-  audioFileName?: string;
-  transcript?: string; // 完全文字起こし
-  summary: string;     // 全体要約
-  agenda_items: string;// 議題と振り返り
-  key_discussions: string; // 主な議論・発言
-  action_plans: string;    // 決定事項・ToDo
-  culture_notes: string;   // 組織文化・理念
-  next_agenda: string;     // 次回の検討事項
-  facilitator_feedback: string; // AI評価・アドバイス
-  status: "draft" | "completed";
+  duration?: string;
+  userTopics?: string;
+  
+  agenda?: AgendaDetails;
+  agendaCreatedAt?: string;
+
+  minutes?: MinutesDetails;
+  minutesCreatedAt?: string;
+
+  status: "agenda_only" | "minutes_completed";
+  version: number;
   createdAt: string;
   updatedAt: string;
   createdById?: string;
-  version: number;
 }
 
 export interface MasterData {

@@ -1,5 +1,5 @@
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from "docx";
-import { MinutesData, AgendaData } from "./types";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from "docx";
+import { MeetingRecord } from "./types";
 
 export function formatJPDate(dateStr: string): string {
   if (!dateStr) return "";
@@ -12,71 +12,87 @@ export function formatJPDate(dateStr: string): string {
 // ==========================================
 // Word (.docx) ファイル生成 & ダウンロード
 // ==========================================
-export async function downloadMinutesDocx(item: MinutesData): Promise<void> {
+export async function downloadMeetingDocx(item: MeetingRecord): Promise<void> {
+  const children: Paragraph[] = [
+    new Paragraph({
+      text: `COOPs 会議録｜${item.dept} ${item.meetingType}`,
+      heading: HeadingLevel.TITLE,
+      alignment: AlignmentType.CENTER,
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({ text: `開催日：${formatJPDate(item.meetingDate)}　`, bold: true }),
+        new TextRun({ text: `部署：${item.dept}　` }),
+        new TextRun({ text: `種別：${item.meetingType}` }),
+      ],
+      alignment: AlignmentType.CENTER,
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({ text: `参加者：${item.participants.join("、") || "（未指定）"}` }),
+        item.clientName ? new TextRun({ text: `　対象利用者：${item.clientName}` }) : new TextRun(""),
+      ],
+      alignment: AlignmentType.CENTER,
+    }),
+    new Paragraph({ text: "--------------------------------------------------" }),
+  ];
+
+  // 1. 事前アジェンダセクション（存在する場合）
+  if (item.agenda) {
+    children.push(
+      new Paragraph({ text: "【事前アジェンダ】", heading: HeadingLevel.HEADING_1 }),
+      new Paragraph({ text: "■ 目的（Purpose）", heading: HeadingLevel.HEADING_2 }),
+      new Paragraph({ text: item.agenda.purpose || "（未設定）" }),
+      new Paragraph({ text: "■ 達成したい成果（Outcome）", heading: HeadingLevel.HEADING_2 }),
+      new Paragraph({ text: item.agenda.outcome || "（未設定）" })
+    );
+
+    if (item.agenda.review) {
+      children.push(
+        new Paragraph({ text: "■ 前回の振り返り", heading: HeadingLevel.HEADING_2 }),
+        new Paragraph({ text: item.agenda.review })
+      );
+    }
+
+    children.push(
+      new Paragraph({ text: "■ 各議題（AIアドバイス含む）", heading: HeadingLevel.HEADING_2 }),
+      new Paragraph({ text: item.agenda.agenda_items || "（未設定）" }),
+      new Paragraph({ text: "■ クロージング", heading: HeadingLevel.HEADING_2 }),
+      new Paragraph({ text: item.agenda.closing || "（未設定）" }),
+      new Paragraph({ text: "--------------------------------------------------" })
+    );
+  }
+
+  // 2. 議事録セクション（存在する場合）
+  if (item.minutes) {
+    children.push(
+      new Paragraph({ text: "【会議議事録】", heading: HeadingLevel.HEADING_1 }),
+      new Paragraph({ text: "■ 全体要約", heading: HeadingLevel.HEADING_2 }),
+      new Paragraph({ text: item.minutes.summary || "（記載なし）" }),
+      new Paragraph({ text: "■ 議題と振り返り", heading: HeadingLevel.HEADING_2 }),
+      new Paragraph({ text: item.minutes.agenda_items || "（記載なし）" }),
+      new Paragraph({ text: "■ 主な議論・発言内容", heading: HeadingLevel.HEADING_2 }),
+      new Paragraph({ text: item.minutes.key_discussions || "（記載なし）" }),
+      new Paragraph({ text: "■ 決定事項・アクションプラン", heading: HeadingLevel.HEADING_2 }),
+      new Paragraph({ text: item.minutes.action_plans || "（記載なし）" }),
+      new Paragraph({ text: "■ 組織文化・理念の気づき", heading: HeadingLevel.HEADING_2 }),
+      new Paragraph({ text: item.minutes.culture_notes || "（記載なし）" }),
+      new Paragraph({ text: "■ 次回の検討事項・宿題", heading: HeadingLevel.HEADING_2 }),
+      new Paragraph({ text: item.minutes.next_agenda || "（記載なし）" }),
+      new Paragraph({ text: "■ AIファシリテーター評価", heading: HeadingLevel.HEADING_2 }),
+      new Paragraph({ text: item.minutes.facilitator_feedback || "（記載なし）" })
+    );
+  }
+
   const doc = new Document({
-    sections: [
-      {
-        properties: {},
-        children: [
-          new Paragraph({
-            text: `COOPs 議事録｜${item.dept} ${item.meetingType}`,
-            heading: HeadingLevel.TITLE,
-            alignment: AlignmentType.CENTER,
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: `開催日：${formatJPDate(item.meetingDate)}　`, bold: true }),
-              new TextRun({ text: `部署：${item.dept}　` }),
-              new TextRun({ text: `種別：${item.meetingType}` }),
-            ],
-            alignment: AlignmentType.CENTER,
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: `参加者：${item.participants.join("、") || "（未指定）"}` }),
-              item.clientName ? new TextRun({ text: `　対象利用者：${item.clientName}` }) : new TextRun(""),
-            ],
-            alignment: AlignmentType.CENTER,
-          }),
-          new Paragraph({ text: "--------------------------------------------------" }),
-
-          // 1. 全体要約
-          new Paragraph({ text: "■ 全体要約", heading: HeadingLevel.HEADING_2 }),
-          new Paragraph({ text: item.summary || "（記載なし）" }),
-
-          // 2. 議題
-          new Paragraph({ text: "■ 議題と振り返り", heading: HeadingLevel.HEADING_2 }),
-          new Paragraph({ text: item.agenda_items || "（記載なし）" }),
-
-          // 3. 主な議論・発言
-          new Paragraph({ text: "■ 主な議論・発言", heading: HeadingLevel.HEADING_2 }),
-          new Paragraph({ text: item.key_discussions || "（記載なし）" }),
-
-          // 4. 決定事項・アクションプラン
-          new Paragraph({ text: "■ 決定事項・アクションプラン", heading: HeadingLevel.HEADING_2 }),
-          new Paragraph({ text: item.action_plans || "（記載なし）" }),
-
-          // 5. 組織文化・理念
-          new Paragraph({ text: "■ 組織文化・理念の気づき", heading: HeadingLevel.HEADING_2 }),
-          new Paragraph({ text: item.culture_notes || "（記載なし）" }),
-
-          // 6. 次回の検討事項
-          new Paragraph({ text: "■ 次回の検討事項・宿題", heading: HeadingLevel.HEADING_2 }),
-          new Paragraph({ text: item.next_agenda || "（記載なし）" }),
-
-          // 7. AIファシリテーター評価
-          new Paragraph({ text: "■ AIファシリテーター評価", heading: HeadingLevel.HEADING_2 }),
-          new Paragraph({ text: item.facilitator_feedback || "（記載なし）" }),
-        ],
-      },
-    ],
+    sections: [{ properties: {}, children }],
   });
 
   const blob = await Packer.toBlob(doc);
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `議事録_${item.dept}_${item.meetingDate}_${item.meetingType}.docx`;
+  a.download = `COOPs会議録_${item.dept}_${item.meetingDate}_${item.meetingType}.docx`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -84,9 +100,10 @@ export async function downloadMinutesDocx(item: MinutesData): Promise<void> {
 }
 
 // ==========================================
-// テキスト / Markdown コピー
+// 議事録テキスト取得
 // ==========================================
-export function getMinutesPlainText(item: MinutesData): string {
+export function getMinutesPlainText(item: MeetingRecord): string {
+  if (!item.minutes) return "";
   return [
     `【COOPs 議事録】`,
     `会議日: ${formatJPDate(item.meetingDate)}`,
@@ -94,29 +111,33 @@ export function getMinutesPlainText(item: MinutesData): string {
     `参加者: ${item.participants.join("、") || "（未指定）"}${item.clientName ? ` / 対象利用者: ${item.clientName}` : ""}`,
     "",
     "📌 【全体要約】",
-    item.summary,
+    item.minutes.summary,
     "",
     "🔎 【議題と振り返り】",
-    item.agenda_items,
+    item.minutes.agenda_items,
     "",
     "💡 【主な議論・発言】",
-    item.key_discussions,
+    item.minutes.key_discussions,
     "",
     "✨ 【決定事項・アクションプラン】",
-    item.action_plans,
+    item.minutes.action_plans,
     "",
     "🍀 【組織文化・理念】",
-    item.culture_notes,
+    item.minutes.culture_notes,
     "",
     "🎉 【次回の検討事項】",
-    item.next_agenda,
+    item.minutes.next_agenda,
     "",
     "🌌 【AI評価・フィードバック】",
-    item.facilitator_feedback,
+    item.minutes.facilitator_feedback,
   ].join("\n");
 }
 
-export function getAgendaPlainText(item: AgendaData): string {
+// ==========================================
+// アジェンダテキスト取得
+// ==========================================
+export function getAgendaPlainText(item: MeetingRecord): string {
+  if (!item.agenda) return "";
   return [
     `【COOPs 会議アジェンダ】`,
     `会議日: ${formatJPDate(item.meetingDate)}`,
@@ -125,16 +146,16 @@ export function getAgendaPlainText(item: AgendaData): string {
     `所要時間: ${item.duration || "未定"}`,
     "",
     "🎯 【目的】",
-    item.purpose,
+    item.agenda.purpose,
     "",
     "🏁 【達成したい成果】",
-    item.outcome,
+    item.agenda.outcome,
     "",
-    item.review ? `🔄 【前回の振り返り】\n${item.review}\n` : "",
+    item.agenda.review ? `🔄 【前回の振り返り】\n${item.agenda.review}\n` : "",
     "📋 【各議題】",
-    item.agenda_items,
+    item.agenda.agenda_items,
     "",
     "🏁 【クロージング】",
-    item.closing,
+    item.agenda.closing,
   ].filter(Boolean).join("\n");
 }

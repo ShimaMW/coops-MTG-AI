@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
-import { MasterData, AgendaData, MinutesData, UserProfile } from "@/lib/types";
-import { saveMinutesItem } from "@/lib/storage";
-import { downloadMinutesDocx, getMinutesPlainText, formatJPDate } from "@/lib/exportUtils";
+import React, { useState, useEffect } from "react";
+import { MasterData, MeetingRecord, UserProfile, MinutesDetails } from "@/lib/types";
+import { saveMinutesRecord } from "@/lib/storage";
+import { downloadMeetingDocx, getMinutesPlainText, formatJPDate } from "@/lib/exportUtils";
 import { AudioRecorder } from "./AudioRecorder";
 import { AudioUploader } from "./AudioUploader";
 import {
@@ -27,17 +27,21 @@ import {
 
 interface MinutesTabProps {
   masterData: MasterData;
-  agendas: AgendaData[];
+  meetingRecords: MeetingRecord[];
   currentUser: UserProfile;
+  initialAgendaId?: string | null;
   onSaved: () => void;
+  onGoToHistory?: () => void;
   showToast: (msg: string, type?: "success" | "error") => void;
 }
 
 export const MinutesTab: React.FC<MinutesTabProps> = ({
   masterData,
-  agendas,
+  meetingRecords,
   currentUser,
+  initialAgendaId,
   onSaved,
+  onGoToHistory,
   showToast,
 }) => {
   const today = new Date().toISOString().split("T")[0];
@@ -45,7 +49,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // Step 1: 会議情報
-  const [selectedAgendaId, setSelectedAgendaId] = useState("");
+  const [selectedRecordId, setSelectedRecordId] = useState<string>(initialAgendaId || "");
   const [meetingDate, setMeetingDate] = useState(today);
   const [dept, setDept] = useState(currentUser.department || masterData.departments[0] || "");
   const [meetingType, setMeetingType] = useState(masterData.meetingTypes[0]?.name || "");
@@ -60,7 +64,16 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
 
   // Step 3: AI生成結果
   const [isLoading, setIsLoading] = useState(false);
-  const [minutesResult, setMinutesResult] = useState<any | null>(null);
+  const [minutesResult, setMinutesResult] = useState<MinutesDetails | null>(null);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [savedRecord, setSavedRecord] = useState<MeetingRecord | null>(null);
+
+  // アジェンダ初期選択の反映
+  useEffect(() => {
+    if (initialAgendaId) {
+      handleSelectRecord(initialAgendaId);
+    }
+  }, [initialAgendaId, meetingRecords]);
 
   // 部署変更時に参加者一覧を取得
   const deptEmployees = masterData.employees.filter((e) => e.dept === dept);
@@ -72,16 +85,16 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
   };
 
   // アジェンダ呼び出し
-  const handleSelectAgenda = (id: string) => {
-    setSelectedAgendaId(id);
+  const handleSelectRecord = (id: string) => {
+    setSelectedRecordId(id);
     if (!id) return;
-    const ag = agendas.find((a) => a.id === id);
-    if (ag) {
-      setMeetingDate(ag.meetingDate);
-      setDept(ag.dept);
-      setMeetingType(ag.meetingType);
-      setParticipants(ag.participants);
-      setClientName(ag.clientName || "");
+    const rec = meetingRecords.find((r) => r.id === id);
+    if (rec) {
+      setMeetingDate(rec.meetingDate);
+      setDept(rec.dept);
+      setMeetingType(rec.meetingType);
+      setParticipants(rec.participants);
+      setClientName(rec.clientName || "");
       showToast("アジェンダ情報を読み込みました ✓");
     }
   };
@@ -89,8 +102,13 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
   // 議事録生成
   const handleGenerate = async () => {
     setIsLoading(true);
+    setSaveStatus("idle");
+    setSavedRecord(null);
+
     try {
-      const selectedAgenda = agendas.find((a) => a.id === selectedAgendaId);
+      const selectedRec = meetingRecords.find((r) => r.id === selectedRecordId);
+      const agendaBody = selectedRec?.agenda?.full_text || "";
+
       const res = await fetch("/api/minutes/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -100,7 +118,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
           meetingType,
           participants,
           clientName,
-          agendaBody: selectedAgenda?.full_text || "",
+          agendaBody,
           inputText,
           audioBase64,
           audioMimeType,
@@ -123,88 +141,91 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
     }
   };
 
-  // 保存（楽観的ロック対応）
+  // 保存（アジェンダ紐付け & 楽観的ロック）
   const handleSave = () => {
     if (!minutesResult) return;
 
-    const result = saveMinutesItem({
-      agendaRecordId: selectedAgendaId || undefined,
+    setSaveStatus("saving");
+
+    const selectedRec = meetingRecords.find((r) => r.id === selectedRecordId);
+
+    const result = saveMinutesRecord({
+      recordId: selectedRecordId || undefined,
       meetingDate,
       dept,
       meetingType,
       participants,
       clientName,
-      inputText,
-      audioFileName: audioFileName || undefined,
-      transcript: minutesResult.transcript || "",
-      summary: minutesResult.summary || "",
-      agenda_items: minutesResult.agenda_items || "",
-      key_discussions: minutesResult.key_discussions || "",
-      action_plans: minutesResult.action_plans || "",
-      culture_notes: minutesResult.culture_notes || "",
-      next_agenda: minutesResult.next_agenda || "",
-      facilitator_feedback: minutesResult.facilitator_feedback || "",
-      status: "completed",
+      minutes: {
+        ...minutesResult,
+        inputText,
+        audioFileName: audioFileName || undefined,
+      },
       createdById: currentUser.id,
+      version: selectedRec?.version,
     });
 
     if (result.success) {
-      showToast("議事録を保存しました ✓");
+      setSavedRecord(result.data);
+      setSaveStatus("saved");
+      showToast(result.message, "success");
       onSaved();
     } else {
-      showToast("保存エラー: " + result.error, "error");
+      setSaveStatus("idle");
+      showToast("保存エラー: " + (result.error || "保存に失敗しました"), "error");
     }
   };
 
-  // Word (.docx) ダウンロード
+  // Word (.docx) ダウンロード（アジェンダと議事録を統合出力）
   const handleDownloadDocx = () => {
     if (!minutesResult) return;
-    downloadMinutesDocx({
-      id: "",
+    const selectedRec = meetingRecords.find((r) => r.id === selectedRecordId);
+
+    const recToDownload: MeetingRecord = savedRecord || {
+      id: "temp",
       meetingDate,
       dept,
       meetingType,
       participants,
       clientName,
-      summary: minutesResult.summary,
-      agenda_items: minutesResult.agenda_items,
-      key_discussions: minutesResult.key_discussions,
-      action_plans: minutesResult.action_plans,
-      culture_notes: minutesResult.culture_notes,
-      next_agenda: minutesResult.next_agenda,
-      facilitator_feedback: minutesResult.facilitator_feedback,
-      status: "completed",
+      agenda: selectedRec?.agenda,
+      minutes: minutesResult,
+      status: "minutes_completed",
+      version: 1,
       createdAt: "",
       updatedAt: "",
-      version: 1,
-    });
+    };
+
+    downloadMeetingDocx(recToDownload);
     showToast("Word (.docx) をダウンロードしました ✓");
   };
 
   const handleCopyText = () => {
     if (!minutesResult) return;
-    const text = getMinutesPlainText({
-      id: "",
-      meetingDate,
-      dept,
-      meetingType,
-      participants,
-      clientName,
-      summary: minutesResult.summary,
-      agenda_items: minutesResult.agenda_items,
-      key_discussions: minutesResult.key_discussions,
-      action_plans: minutesResult.action_plans,
-      culture_notes: minutesResult.culture_notes,
-      next_agenda: minutesResult.next_agenda,
-      facilitator_feedback: minutesResult.facilitator_feedback,
-      status: "completed",
-      createdAt: "",
-      updatedAt: "",
-      version: 1,
-    });
+    const selectedRec = meetingRecords.find((r) => r.id === selectedRecordId);
+
+    const text = getMinutesPlainText(
+      savedRecord || {
+        id: "",
+        meetingDate,
+        dept,
+        meetingType,
+        participants,
+        clientName,
+        agenda: selectedRec?.agenda,
+        minutes: minutesResult,
+        status: "minutes_completed",
+        version: 1,
+        createdAt: "",
+        updatedAt: "",
+      }
+    );
     navigator.clipboard.writeText(text);
     showToast("議事録テキストをコピーしました ✓");
   };
+
+  // アジェンダが存在するレコード一覧
+  const agendaRecords = meetingRecords.filter((r) => r.agenda);
 
   return (
     <div className="space-y-6">
@@ -250,21 +271,22 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
           </h2>
 
           {/* 事前アジェンダ連携 */}
-          {agendas.length > 0 && (
+          {agendaRecords.length > 0 && (
             <div className="p-3.5 bg-clover-50/80 border border-clover-200 rounded-xl">
               <label className="block text-xs font-bold text-clover-900 mb-1.5 flex items-center gap-1.5">
                 <LinkIcon className="w-3.5 h-3.5 text-clover-700" />
-                事前アジェンダから呼び起こす（自動入力）
+                事前アジェンダから呼び起こす（紐付け保存されます）
               </label>
               <select
-                value={selectedAgendaId}
-                onChange={(e) => handleSelectAgenda(e.target.value)}
+                value={selectedRecordId}
+                onChange={(e) => handleSelectRecord(e.target.value)}
                 className="w-full bg-white border border-clover-300 rounded-lg px-3 py-2 text-xs md:text-sm outline-none focus:ring-2 focus:ring-clover-500/20"
               >
-                <option value="">― アジェンダを選択（任意） ―</option>
-                {agendas.map((a) => (
+                <option value="">― アジェンダを選択（新規の場合は未選択） ―</option>
+                {agendaRecords.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.meetingDate} | {a.dept} | {a.meetingType} {a.clientName ? `(${a.clientName})` : ""}
+                    {a.status === "minutes_completed" ? " [議事録あり]" : " [アジェンダのみ]"}
                   </option>
                 ))}
               </select>
@@ -381,9 +403,8 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             ステップ 2: 会議データ（音声・メモ）の取り込み
           </h2>
 
-          {/* 音声入力オプション（ボイスメモ / ブラウザ録音） */}
+          {/* 音声入力オプション */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* ボイスメモアップローダー */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 📱 スマホのボイスメモ / 録音ファイル（推奨）
@@ -408,7 +429,6 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
               />
             </div>
 
-            {/* ブラウザ直接録音 */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 🎙️ ブラウザで今すぐ録音（スリープ防止）
@@ -429,10 +449,10 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             </div>
           </div>
 
-          {/* テキストメモ欄 */}
+          {/* テキストメモ */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              📝 テキストメモ・発言内容（任意・箇条書きでもOK）
+              📝 テキストメモ・発言内容（任意）
             </label>
             <textarea
               rows={6}
@@ -443,7 +463,6 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             ></textarea>
           </div>
 
-          {/* ナビゲーション */}
           <div className="pt-4 flex items-center justify-between border-t border-slate-100">
             <button
               type="button"
@@ -489,6 +508,11 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
                 <span>🏢 {dept}</span>
                 <span>📋 {meetingType}</span>
                 <span>👥 {participants.join("、") || "（未指定）"}</span>
+                {selectedRecordId && (
+                  <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                    <LinkIcon className="w-3 h-3" /> アジェンダ連携中
+                  </span>
+                )}
               </div>
             </div>
 
@@ -595,13 +619,50 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             />
           </div>
 
+          {/* 保存ステータスバナー */}
+          {saveStatus === "saved" && (
+            <div className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-xl flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold text-emerald-800">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                議事録が正常に保存されました！（ステータス：議事録完了）
+              </div>
+              {onGoToHistory && (
+                <button
+                  type="button"
+                  onClick={onGoToHistory}
+                  className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition"
+                >
+                  ログ一覧で確認 <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          )}
+
           {/* アクションボタンバー */}
           <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-slate-100 no-print">
             <button
               onClick={handleSave}
-              className="px-6 py-2.5 bg-clover-700 hover:bg-clover-800 text-white font-bold text-xs md:text-sm rounded-xl shadow-sm flex items-center gap-2 transition"
+              disabled={saveStatus === "saving"}
+              className={`px-6 py-2.5 font-bold text-xs md:text-sm rounded-xl shadow-sm flex items-center gap-2 transition ${
+                saveStatus === "saved"
+                  ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                  : "bg-clover-700 hover:bg-clover-800 text-white"
+              }`}
             >
-              <Save className="w-4 h-4" /> 議事録を保存する
+              {saveStatus === "saving" ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  保存中...
+                </>
+              ) : saveStatus === "saved" ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-white" /> 保存完了（更新する）
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" /> 議事録を保存する
+                </>
+              )}
             </button>
             <button
               onClick={handleDownloadDocx}
