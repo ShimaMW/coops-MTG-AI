@@ -15,27 +15,39 @@ export const Navbar: React.FC<NavbarProps> = ({
   onUserChange,
 }) => {
   return (
-    <header className="bg-clover-700 text-white px-5 py-3.5 rounded-2xl flex flex-wrap items-center justify-between gap-4 shadow-md mb-6 no-print">
+    <header className="bg-[#283136] border border-white/10 text-white px-5 py-3.5 rounded-2xl flex flex-wrap items-center justify-between gap-4 shadow-lg mb-4 no-print backdrop-blur-md">
       {/* ロゴ & タイトル */}
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center border border-white/20">
-          <Sparkles className="w-5 h-5 text-emerald-300" />
-        </div>
+      <div className="flex items-center gap-3.5">
+        <img
+          src="/coops-logo.png"
+          alt="COOPs"
+          className="h-8 md:h-9 w-auto object-contain drop-shadow-sm"
+          onError={(e) => {
+            // 画像ロード失敗時のフォールバック
+            (e.target as HTMLElement).style.display = "none";
+          }}
+        />
+        <div className="h-6 w-px bg-white/20 hidden sm:block"></div>
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-base font-bold tracking-tight">COOPs 議事録AI</h1>
-            <span className="bg-white/15 border border-white/20 text-white/90 text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
-              v3.5 Flash-Lite
+            <h1 className="text-sm md:text-base font-bold tracking-tight text-white">
+              AI議事録アシスタント
+            </h1>
+            <span className="bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-emerald-400" />
+              Gemini 3.5
             </span>
           </div>
-          <p className="text-xs text-white/70">介護事業所向け AIミーティングアシスタント</p>
+          <p className="text-[11px] text-slate-300">
+            2026年度 経営ケアプラン -クローバー2.0- 連携システム
+          </p>
         </div>
       </div>
 
       {/* ユーザー & 権限切替 */}
       <div className="flex items-center gap-3 ml-auto">
-        <div className="flex items-center bg-black/20 border border-white/15 rounded-xl px-3 py-1.5 gap-2.5 text-xs">
-          <div className="flex items-center gap-1 text-emerald-300 font-medium">
+        <div className="flex items-center bg-black/30 border border-white/15 rounded-xl px-3 py-1.5 gap-2.5 text-xs shadow-inner">
+          <div className="flex items-center gap-1 text-emerald-400 font-bold">
             <Shield className="w-3.5 h-3.5" />
             <span>{currentUser.role === "admin" ? "本部（全閲覧）" : "部署スタッフ"}</span>
           </div>

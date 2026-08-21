@@ -52,17 +52,17 @@ export default function Home() {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100">
+      <div className="min-h-screen flex items-center justify-center bg-[#353F45]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-3 border-clover-700 border-t-transparent rounded-full animate-spin"></div>
-          <div className="text-xs font-bold text-slate-500">データを読み込み中...</div>
+          <div className="w-8 h-8 border-3 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
+          <div className="text-xs font-bold text-white/70">データを読み込み中...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-100/70 p-3 sm:p-6 md:p-8">
+    <main className="min-h-screen bg-[#353F45] p-3 sm:p-6 md:p-8">
       <div className="max-w-4xl mx-auto">
         {/* ヘッダー */}
         <Navbar

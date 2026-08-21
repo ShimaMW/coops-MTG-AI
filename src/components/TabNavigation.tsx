@@ -21,7 +21,7 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
   ] as const;
 
   return (
-    <div className="flex gap-1.5 p-1 bg-slate-200/80 rounded-xl mb-4 no-print overflow-x-auto">
+    <div className="flex gap-1.5 p-1.5 bg-[#283136] border border-white/10 rounded-2xl mb-4 no-print overflow-x-auto shadow-md">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
@@ -29,13 +29,13 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id as TabType)}
-            className={`flex-1 min-w-[120px] py-2.5 px-4 rounded-lg font-medium text-xs md:text-sm flex items-center justify-center gap-2 transition-all ${
+            className={`flex-1 min-w-[120px] py-2.5 px-4 rounded-xl font-medium text-xs md:text-sm flex items-center justify-center gap-2 transition-all ${
               isActive
-                ? "bg-white text-clover-700 shadow-sm font-bold"
-                : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                ? "bg-white text-slate-900 shadow-md font-bold"
+                : "text-slate-300 hover:text-white hover:bg-white/10"
             }`}
           >
-            <Icon className={`w-4 h-4 ${isActive ? "text-clover-600" : "text-slate-500"}`} />
+            <Icon className={`w-4 h-4 ${isActive ? "text-emerald-700" : "text-slate-400"}`} />
             <span>{tab.label}</span>
           </button>
         );
