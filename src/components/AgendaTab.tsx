@@ -13,13 +13,11 @@ import {
   CheckCircle2,
   Calendar,
   Clock,
-  Users,
   Target,
   FileCheck,
   ArrowRight,
   CalendarPlus,
-  FileEdit,
-  ChevronDown,
+  Edit3,
 } from "lucide-react";
 
 interface AgendaTabProps {
@@ -94,10 +92,11 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
   const [customMeetingType, setCustomMeetingType] = useState("");
   const [participants, setParticipants] = useState("");
   
-  // 時間設定（テキスト ＆ タイムピッカーUI）
-  const [duration, setDuration] = useState("10:00〜11:00（1時間）");
+  // 時間設定（シンプル一体型）
   const [startTime, setStartTime] = useState("10:00");
   const [endTime, setEndTime] = useState("11:00");
+  const [isManualDuration, setIsManualDuration] = useState(false);
+  const [manualDurationText, setManualDurationText] = useState("");
 
   const [topics, setTopics] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
@@ -108,6 +107,41 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
   const effectiveMeetingType = meetingType === "その他" ? customMeetingType || "その他会議" : meetingType;
+
+  // 所要時間の自動計算
+  const calculateDurationMinutes = (start: string, end: string): string => {
+    if (!start || !end) return "";
+    const [sh, sm] = start.split(":").map(Number);
+    const [eh, em] = end.split(":").map(Number);
+    if (isNaN(sh) || isNaN(sm) || isNaN(eh) || isNaN(em)) return "";
+    
+    let diff = (eh * 60 + em) - (sh * 60 + sm);
+    if (diff < 0) diff += 24 * 60; // 日跨ぎ対応
+    
+    if (diff === 0) return "0分";
+    if (diff < 60) return `${diff}分`;
+    const hours = Math.floor(diff / 60);
+    const mins = diff % 60;
+    return mins > 0 ? `${hours}時間${mins}分` : `${hours}時間`;
+  };
+
+  const currentDurationLabel = isManualDuration
+    ? manualDurationText
+    : `${startTime}〜${endTime}（${calculateDurationMinutes(startTime, endTime)}）`;
+
+  // クイック所要時間ボタンが押されたとき（終了時刻を自動計算）
+  const applyQuickDurationMinutes = (mins: number) => {
+    setIsManualDuration(false);
+    const [sh, sm] = startTime.split(":").map(Number);
+    if (isNaN(sh) || isNaN(sm)) return;
+    
+    const totalMinutes = sh * 60 + sm + mins;
+    const endH = Math.floor((totalMinutes / 60) % 24);
+    const endM = totalMinutes % 60;
+    
+    const formattedEnd = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
+    setEndTime(formattedEnd);
+  };
 
   // 日付クイック設定
   const setQuickDate = (offsetDays: number) => {
@@ -122,15 +156,6 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
     const parts = e.target.value.split("-");
     if (parts.length === 3) {
       setMeetingDate(`${parts[0]}/${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)}`);
-    }
-  };
-
-  // タイムピッカーからの更新
-  const handleTimeChange = (newStart: string, newEnd: string) => {
-    setStartTime(newStart);
-    setEndTime(newEnd);
-    if (newStart && newEnd) {
-      setDuration(`${newStart}〜${newEnd}`);
     }
   };
 
@@ -167,7 +192,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
           dept,
           meetingType: effectiveMeetingType,
           participants,
-          duration,
+          duration: currentDurationLabel,
           topics,
         }),
       });
@@ -199,7 +224,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
         dept,
         meetingType: effectiveMeetingType,
         participants,
-        duration,
+        duration: currentDurationLabel,
         userTopics: topics,
         agenda: generatedAgenda,
         createdById: currentUser.id,
@@ -224,7 +249,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
       `会議日: ${meetingDate}`,
       `部署: ${dept} / 種別: ${effectiveMeetingType}`,
       `参加者: ${participants || "（未指定）"}`,
-      `所要時間: ${duration || "未定"}`,
+      `所要時間: ${currentDurationLabel || "未定"}`,
       "",
       "🎯 【目的】",
       generatedAgenda.purpose,
@@ -250,7 +275,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
     const url = getGoogleCalendarUrl({
       title: `${dept} ${effectiveMeetingType}`,
       meetingDate,
-      duration,
+      duration: currentDurationLabel,
       dept,
       meetingType: effectiveMeetingType,
       details: `【目的】\n${generatedAgenda.purpose}\n\n【各議題】\n${generatedAgenda.agenda_items}`,
@@ -268,7 +293,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          {/* 日付入力（テキスト ＋ カレンダーUI ＋ クイックボタン） */}
+          {/* 日付入力 */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
               <span>📅 会議日（テキスト＆カレンダー選択）</span>
@@ -375,49 +400,93 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
           </div>
         </div>
 
-        {/* 予定時間（テキスト ＋ 開始・終了時間UI ＋ サジェスト） */}
+        {/* ── 予定時間（すっきり一体型UI） ── */}
         <div className="mb-4">
-          <label className="block text-xs font-bold text-slate-700 mb-1">
-            ⏱️ 予定時間 / 所要時間（テキストまたは時間選択）
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-clover-700" />
+              予定時間
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                if (!isManualDuration) {
+                  setManualDurationText(`${startTime}〜${endTime}`);
+                }
+                setIsManualDuration(!isManualDuration);
+              }}
+              className="text-[11px] text-clover-800 hover:text-clover-900 font-medium flex items-center gap-1"
+            >
+              <Edit3 className="w-3 h-3" />
+              {isManualDuration ? "時間ピッカーに戻す" : "自由テキストで入力"}
+            </button>
+          </div>
+
+          {isManualDuration ? (
+            /* 自由テキストモード */
             <input
               type="text"
-              placeholder="例：10:00〜11:00（1時間）"
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm outline-none focus:border-clover-600 focus:bg-white transition"
+              placeholder="例：10:00〜11:30、または 1時間"
+              value={manualDurationText}
+              onChange={(e) => setManualDurationText(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-clover-600 focus:bg-white transition"
             />
-            {/* 時間ピッカーUI */}
-            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
-              <Clock className="w-3.5 h-3.5 text-slate-400" />
-              <input
-                type="time"
-                value={startTime}
-                onChange={(e) => handleTimeChange(e.target.value, endTime)}
-                className="bg-transparent text-xs font-medium outline-none text-slate-700 cursor-pointer"
-              />
-              <span className="text-xs text-slate-400">〜</span>
-              <input
-                type="time"
-                value={endTime}
-                onChange={(e) => handleTimeChange(startTime, e.target.value)}
-                className="bg-transparent text-xs font-medium outline-none text-slate-700 cursor-pointer"
-              />
+          ) : (
+            /* 一体型タイムピッカー */
+            <div className="space-y-2">
+              <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-slate-500 font-medium">開始</span>
+                    <input
+                      type="time"
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                      className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-sm font-bold text-slate-800 outline-none focus:border-clover-600 transition"
+                    />
+                  </div>
+
+                  <span className="text-slate-400 font-bold">〜</span>
+
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-slate-500 font-medium">終了</span>
+                    <input
+                      type="time"
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                      className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-sm font-bold text-slate-800 outline-none focus:border-clover-600 transition"
+                    />
+                  </div>
+                </div>
+
+                {/* 自動計算された所要時間バッジ */}
+                <div className="bg-clover-100 text-clover-900 border border-clover-300 font-bold text-xs px-3 py-1 rounded-full">
+                  ⏱️ {calculateDurationMinutes(startTime, endTime)}
+                </div>
+              </div>
+
+              {/* クイック所要時間ボタン */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] text-slate-400">所要時間でセット:</span>
+                {[
+                  { label: "30分", mins: 30 },
+                  { label: "45分", mins: 45 },
+                  { label: "1時間", mins: 60 },
+                  { label: "1.5時間", mins: 90 },
+                  { label: "2時間", mins: 120 },
+                ].map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => applyQuickDurationMinutes(item.mins)}
+                    className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-medium transition shadow-2xs"
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {["30分", "45分", "1時間", "1時間30分", "2時間"].map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setDuration(s)}
-                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full text-xs transition"
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+          )}
         </div>
 
         {/* 議題メモ（ドロップダウン式テンプレート選択付き） */}
