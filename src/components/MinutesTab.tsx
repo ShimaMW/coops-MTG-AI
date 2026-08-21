@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { MeetingRecord, UserProfile, MinutesDetails } from "@/lib/types";
 import { DEFAULT_DEPARTMENTS, DEFAULT_MEETING_TYPES, saveMinutesRecord } from "@/lib/storage";
-import { downloadMeetingDocx, getMinutesPlainText, formatJPDate } from "@/lib/exportUtils";
+import { downloadMeetingDocx, getMinutesPlainText, getChatSummaryText, formatJPDate } from "@/lib/exportUtils";
 import { AudioRecorder } from "./AudioRecorder";
-import { AudioUploader } from "./AudioUploader";
+import { MediaUploader } from "./AudioUploader";
 import {
   FileText,
   Sparkles,
@@ -23,6 +23,7 @@ import {
   Lightbulb,
   Heart,
   Calendar,
+  Share2,
 } from "lucide-react";
 
 interface MinutesTabProps {
@@ -42,28 +43,43 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
   onGoToHistory,
   showToast,
 }) => {
-  const today = new Date().toISOString().split("T")[0];
+  const getTodayStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+  };
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // Step 1: 会議情報
   const [selectedRecordId, setSelectedRecordId] = useState<string>(initialAgendaId || "");
-  const [meetingDate, setMeetingDate] = useState(today);
+  const [meetingDate, setMeetingDate] = useState(getTodayStr());
   const [dept, setDept] = useState(currentUser.department || DEFAULT_DEPARTMENTS[0]);
   const [meetingType, setMeetingType] = useState(DEFAULT_MEETING_TYPES[0]);
+  const [customMeetingType, setCustomMeetingType] = useState("");
   const [participants, setParticipants] = useState("");
 
-  // Step 2: 入力データ（テキスト & 音声）
+  // Step 2: 入力データ（テキスト、音声、画像/ホワイトボード）
   const [inputText, setInputText] = useState("");
   const [audioBase64, setAudioBase64] = useState<string | null>(null);
   const [audioMimeType, setAudioMimeType] = useState<string | null>(null);
-  const [audioFileName, setAudioFileName] = useState<string | null>(null);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [imageMimeType, setImageMimeType] = useState<string | null>(null);
+  const [mediaFileName, setMediaFileName] = useState<string | null>(null);
 
   // Step 3: AI生成結果
   const [isLoading, setIsLoading] = useState(false);
   const [minutesResult, setMinutesResult] = useState<MinutesDetails | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [savedRecord, setSavedRecord] = useState<MeetingRecord | null>(null);
+
+  const effectiveMeetingType = meetingType === "その他" ? customMeetingType || "その他会議" : meetingType;
+
+  // 日付クイック設定
+  const setQuickDate = (offsetDays: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    setMeetingDate(`${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`);
+  };
 
   // アジェンダ初期選択の反映
   useEffect(() => {
@@ -80,13 +96,19 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
     if (rec) {
       setMeetingDate(rec.meetingDate);
       setDept(rec.dept);
-      setMeetingType(rec.meetingType);
+      if (DEFAULT_MEETING_TYPES.includes(rec.meetingType)) {
+        setMeetingType(rec.meetingType);
+        setCustomMeetingType("");
+      } else {
+        setMeetingType("その他");
+        setCustomMeetingType(rec.meetingType);
+      }
       setParticipants(rec.participants);
       showToast("アジェンダ情報を読み込みました ✓");
     }
   };
 
-  // 議事録生成
+  // 議事録生成（音声＋画像OCR＋テキストマルチモーダル）
   const handleGenerate = async () => {
     setIsLoading(true);
     setSaveStatus("idle");
@@ -102,12 +124,14 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
         body: JSON.stringify({
           meetingDate,
           dept,
-          meetingType,
+          meetingType: effectiveMeetingType,
           participants,
           agendaBody,
           inputText,
           audioBase64,
           audioMimeType,
+          imageBase64,
+          imageMimeType,
         }),
       });
 
@@ -127,7 +151,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
     }
   };
 
-  // 保存（アジェンダ紐付け & 楽観的ロック）
+  // 保存
   const handleSave = () => {
     if (!minutesResult) return;
 
@@ -139,12 +163,12 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
       recordId: selectedRecordId || undefined,
       meetingDate,
       dept,
-      meetingType,
+      meetingType: effectiveMeetingType,
       participants,
       minutes: {
         ...minutesResult,
         inputText,
-        audioFileName: audioFileName || undefined,
+        audioFileName: mediaFileName || undefined,
       },
       createdById: currentUser.id,
       version: selectedRec?.version,
@@ -170,7 +194,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
       id: "temp",
       meetingDate,
       dept,
-      meetingType,
+      meetingType: effectiveMeetingType,
       participants,
       agenda: selectedRec?.agenda,
       minutes: minutesResult,
@@ -193,7 +217,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
         id: "",
         meetingDate,
         dept,
-        meetingType,
+        meetingType: effectiveMeetingType,
         participants,
         agenda: selectedRec?.agenda,
         minutes: minutesResult,
@@ -207,7 +231,30 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
     showToast("議事録テキストをコピーしました ✓");
   };
 
-  // アジェンダが存在するレコード一覧
+  // LINE WORKS / チャット共有用コピー
+  const handleCopyChatSummary = () => {
+    if (!minutesResult) return;
+    const selectedRec = meetingRecords.find((r) => r.id === selectedRecordId);
+
+    const text = getChatSummaryText(
+      savedRecord || {
+        id: "",
+        meetingDate,
+        dept,
+        meetingType: effectiveMeetingType,
+        participants,
+        agenda: selectedRec?.agenda,
+        minutes: minutesResult,
+        status: "minutes_completed",
+        version: 1,
+        createdAt: "",
+        updatedAt: "",
+      }
+    );
+    navigator.clipboard.writeText(text);
+    showToast("LINE WORKS / チャット用要約をコピーしました 📢");
+  };
+
   const agendaRecords = meetingRecords.filter((r) => r.agenda);
 
   return (
@@ -216,7 +263,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
       <div className="flex items-center justify-between max-w-lg mx-auto mb-6 no-print">
         {[
           { num: 1, label: "会議情報" },
-          { num: 2, label: "音声・メモ入力" },
+          { num: 2, label: "音声・写真・メモ入力" },
           { num: 3, label: "議事録完成" },
         ].map((s, idx) => (
           <React.Fragment key={s.num}>
@@ -250,7 +297,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
           <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
             <Calendar className="w-5 h-5 text-clover-700" />
-            ステップ 1: 会議基本情報（定例・事業所会議）
+            ステップ 1: 会議基本情報
           </h2>
 
           {/* 事前アジェンダ連携 */}
@@ -278,9 +325,27 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">📅 会議日</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                <span>📅 会議日（テキスト入力可）</span>
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setQuickDate(-1)}
+                    className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-[10px]"
+                  >
+                    昨日
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQuickDate(0)}
+                    className="px-1.5 py-0.5 bg-clover-100 hover:bg-clover-200 text-clover-800 font-bold rounded text-[10px]"
+                  >
+                    今日
+                  </button>
+                </div>
+              </label>
               <input
-                type="date"
+                type="text"
                 value={meetingDate}
                 onChange={(e) => setMeetingDate(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-clover-600 focus:bg-white transition"
@@ -316,6 +381,15 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
                   </option>
                 ))}
               </select>
+              {meetingType === "その他" && (
+                <input
+                  type="text"
+                  placeholder="会議種別名を入力"
+                  value={customMeetingType}
+                  onChange={(e) => setCustomMeetingType(e.target.value)}
+                  className="w-full mt-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-clover-600 focus:bg-white transition"
+                />
+              )}
             </div>
 
             <div>
@@ -336,7 +410,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
               onClick={() => setStep(2)}
               className="px-6 py-2.5 bg-clover-700 hover:bg-clover-800 text-white font-bold text-sm rounded-xl shadow-sm flex items-center gap-2 transition"
             >
-              次へ：音声・メモ入力 <ArrowRight className="w-4 h-4" />
+              次へ：音声・写真・メモ入力 <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -347,35 +421,42 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-5">
           <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-clover-700" />
-            ステップ 2: 会議データ（音声・メモ）の取り込み
+            ステップ 2: 会議データ（音声・ホワイトボード写真・メモ）
           </h2>
 
-          {/* 音声入力オプション */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* ボイスメモ & 写真・資料アップローダー */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                📱 スマホのボイスメモ / 録音ファイル（推奨）
+                📱 ボイスメモ / 写真（ホワイトボード・資料OCR）
               </label>
-              <AudioUploader
-                onFileLoaded={(base64, mime, name, text) => {
-                  if (text) {
-                    setInputText((prev) => (prev ? `${prev}\n\n${text}` : text));
-                    showToast("テキストファイルの内容を取り込みました ✓");
-                  } else {
-                    setAudioBase64(base64);
-                    setAudioMimeType(mime);
-                    setAudioFileName(name);
-                    showToast(`${name} をセットしました ✓`);
+              <MediaUploader
+                onFileLoaded={(data) => {
+                  setMediaFileName(data.fileName);
+                  if (data.textContent) {
+                    setInputText((prev) => (prev ? `${prev}\n\n${data.textContent}` : data.textContent!));
+                    showToast("テキストを取り込みました ✓");
+                  } else if (data.imageBase64) {
+                    setImageBase64(data.imageBase64);
+                    setImageMimeType(data.imageMimeType || "image/jpeg");
+                    showToast(`写真「${data.fileName}」を取り込みました（AIがOCR解析します）✓`);
+                  } else if (data.audioBase64) {
+                    setAudioBase64(data.audioBase64);
+                    setAudioMimeType(data.audioMimeType || "audio/m4a");
+                    showToast(`音声「${data.fileName}」を取り込みました ✓`);
                   }
                 }}
                 onClear={() => {
                   setAudioBase64(null);
                   setAudioMimeType(null);
-                  setAudioFileName(null);
+                  setImageBase64(null);
+                  setImageMimeType(null);
+                  setMediaFileName(null);
                 }}
               />
             </div>
 
+            {/* ブラウザ直接録音 */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 🎙️ ブラウザで今すぐ録音（スリープ防止）
@@ -384,7 +465,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
                 onRecordingComplete={(base64, mime, liveTranscript) => {
                   setAudioBase64(base64);
                   setAudioMimeType(mime);
-                  setAudioFileName("ブラウザ録音データ.webm");
+                  setMediaFileName("ブラウザ録音データ.webm");
                   if (liveTranscript) {
                     setInputText((prev) =>
                       prev ? `${prev}\n\n${liveTranscript}` : liveTranscript
@@ -403,7 +484,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             </label>
             <textarea
               rows={6}
-              placeholder="会議中のメモや要点、発言者ごとの意見などを自由に入力してください。音声ファイルと組み合わせることも可能です。"
+              placeholder="会議中のメモや要点、発言者ごとの意見などを自由に入力してください。音声やホワイトボード写真と組み合わせることも可能です。"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:border-clover-600 focus:bg-white transition leading-relaxed"
@@ -422,13 +503,13 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             <button
               type="button"
               onClick={handleGenerate}
-              disabled={isLoading || (!inputText && !audioBase64)}
+              disabled={isLoading || (!inputText && !audioBase64 && !imageBase64)}
               className="px-8 py-3 bg-clover-700 hover:bg-clover-800 disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-sm flex items-center gap-2 transition"
             >
               {isLoading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Gemini 3.5 Flash-Lite が議事録を精査・生成中...
+                  Gemini 3.5 Flash-Lite が音声/写真/メモを精査中...
                 </>
               ) : (
                 <>
@@ -453,7 +534,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
               <div className="flex flex-wrap gap-2 text-xs text-slate-500 mt-1">
                 <span>📅 {formatJPDate(meetingDate)}</span>
                 <span>🏢 {dept}</span>
-                <span>📋 {meetingType}</span>
+                <span>📋 {effectiveMeetingType}</span>
                 <span>👥 {participants || "（未指定）"}</span>
                 {selectedRecordId && (
                   <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
@@ -586,11 +667,11 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
           )}
 
           {/* アクションボタンバー */}
-          <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-slate-100 no-print">
+          <div className="flex flex-wrap items-center gap-2.5 pt-4 border-t border-slate-100 no-print">
             <button
               onClick={handleSave}
               disabled={saveStatus === "saving"}
-              className={`px-6 py-2.5 font-bold text-xs md:text-sm rounded-xl shadow-sm flex items-center gap-2 transition ${
+              className={`px-5 py-2.5 font-bold text-xs md:text-sm rounded-xl shadow-sm flex items-center gap-2 transition ${
                 saveStatus === "saved"
                   ? "bg-emerald-600 text-white hover:bg-emerald-700"
                   : "bg-clover-700 hover:bg-clover-800 text-white"
@@ -612,20 +693,26 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
               )}
             </button>
             <button
-              onClick={handleDownloadDocx}
-              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs md:text-sm rounded-xl shadow-sm flex items-center gap-2 transition"
+              onClick={handleCopyChatSummary}
+              className="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs md:text-sm rounded-xl shadow-sm flex items-center gap-1.5 transition"
             >
-              <Download className="w-4 h-4" /> Word (.docx) 保存
+              <Share2 className="w-4 h-4" /> LINE WORKS用コピー
+            </button>
+            <button
+              onClick={handleDownloadDocx}
+              className="px-3.5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs md:text-sm rounded-xl shadow-sm flex items-center gap-1.5 transition"
+            >
+              <Download className="w-4 h-4" /> Word保存
             </button>
             <button
               onClick={handleCopyText}
-              className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs md:text-sm rounded-xl flex items-center gap-2 transition"
+              className="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs md:text-sm rounded-xl flex items-center gap-1.5 transition"
             >
-              <Copy className="w-4 h-4" /> テキストをコピー
+              <Copy className="w-4 h-4" /> 全文コピー
             </button>
             <button
               onClick={() => window.print()}
-              className="px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-bold text-xs md:text-sm rounded-xl flex items-center gap-2 transition"
+              className="px-3 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-bold text-xs md:text-sm rounded-xl flex items-center gap-1.5 transition"
             >
               <Printer className="w-4 h-4" /> 印刷
             </button>

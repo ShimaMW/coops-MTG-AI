@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { UserProfile, AgendaDetails } from "@/lib/types";
 import { DEFAULT_DEPARTMENTS, DEFAULT_MEETING_TYPES, saveAgendaRecord } from "@/lib/storage";
-import { formatJPDate } from "@/lib/exportUtils";
+import { formatJPDate, getGoogleCalendarUrl } from "@/lib/exportUtils";
 import {
   Sparkles,
   Save,
@@ -17,6 +17,8 @@ import {
   Target,
   FileCheck,
   ArrowRight,
+  CalendarPlus,
+  FileEdit,
 } from "lucide-react";
 
 interface AgendaTabProps {
@@ -32,13 +34,17 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
   onGoToMinutes,
   showToast,
 }) => {
-  const today = new Date().toISOString().split("T")[0];
+  const getTodayStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+  };
 
-  const [meetingDate, setMeetingDate] = useState(today);
+  const [meetingDate, setMeetingDate] = useState(getTodayStr());
   const [dept, setDept] = useState(currentUser.department || DEFAULT_DEPARTMENTS[0]);
   const [meetingType, setMeetingType] = useState(DEFAULT_MEETING_TYPES[0]);
+  const [customMeetingType, setCustomMeetingType] = useState("");
   const [participants, setParticipants] = useState("");
-  const [duration, setDuration] = useState("1時間");
+  const [duration, setDuration] = useState("10:00〜11:00（1時間）");
   const [topics, setTopics] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
@@ -46,13 +52,40 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
   const [savedRecordId, setSavedRecordId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
+  const effectiveMeetingType = meetingType === "その他" ? customMeetingType || "その他会議" : meetingType;
+
+  // 日付クイック設定
+  const setQuickDate = (offsetDays: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    setMeetingDate(`${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`);
+  };
+
+  // 議題テンプレート挿入
+  const insertTemplate = (type: string) => {
+    if (type === "teirei") {
+      setTopics(
+        "【報告事項】\n・今月の稼働状況・目標達成状況\n・ヒヤリハット・インシデント報告\n\n【検討・決定事項】\n・新スタッフの同行・研修計画\n・業務フロー見直し（申し送り手順）\n\n【その他】\n・次回勉強会のテーマ"
+      );
+    } else if (type === "moushiokuri") {
+      setTopics(
+        "【本日の重要申し送り】\n・体調変化・特記のある利用者様について\n・受診予定・送迎時間の変更点\n・スタッフ間の業務分担・引き継ぎ"
+      );
+    } else if (type === "iinkai") {
+      setTopics(
+        "【事故防止・感染対策・身体拘束廃止委員会】\n・前月のヒヤリハット集計と分析\n・具体的な再発防止策の立案と周知\n・感染症発生時の初動フロー再確認\n・職員向けミニ研修の実施計画"
+      );
+    }
+    showToast("議題テンプレートを挿入しました ✓");
+  };
+
   const handleGenerate = async () => {
     if (!dept) {
       showToast("部署を選択してください", "error");
       return;
     }
-    if (!meetingType) {
-      showToast("会議種別を選択してください", "error");
+    if (!effectiveMeetingType) {
+      showToast("会議種別を入力してください", "error");
       return;
     }
 
@@ -67,7 +100,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
         body: JSON.stringify({
           meetingDate,
           dept,
-          meetingType,
+          meetingType: effectiveMeetingType,
           participants,
           duration,
           topics,
@@ -99,7 +132,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
         id: savedRecordId || undefined,
         meetingDate,
         dept,
-        meetingType,
+        meetingType: effectiveMeetingType,
         participants,
         duration,
         userTopics: topics,
@@ -123,8 +156,8 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
     if (!generatedAgenda) return;
     const text = [
       `【COOPs 会議アジェンダ】`,
-      `会議日: ${formatJPDate(meetingDate)}`,
-      `部署: ${dept} / 種別: ${meetingType}`,
+      `会議日: ${meetingDate}`,
+      `部署: ${dept} / 種別: ${effectiveMeetingType}`,
       `参加者: ${participants || "（未指定）"}`,
       `所要時間: ${duration || "未定"}`,
       "",
@@ -146,7 +179,28 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
     showToast("アジェンダをコピーしました ✓");
   };
 
-  const durations = ["30分", "45分", "1時間", "1時間30分", "2時間"];
+  // Googleカレンダー登録リンク
+  const handleOpenGoogleCalendar = () => {
+    if (!generatedAgenda) return;
+    const url = getGoogleCalendarUrl({
+      title: `${dept} ${effectiveMeetingType}`,
+      meetingDate,
+      duration,
+      dept,
+      meetingType: effectiveMeetingType,
+      details: `【目的】\n${generatedAgenda.purpose}\n\n【各議題】\n${generatedAgenda.agenda_items}`,
+    });
+    window.open(url, "_blank");
+  };
+
+  const durationSuggestions = [
+    "30分",
+    "45分",
+    "1時間",
+    "10:00〜11:00",
+    "13:30〜14:30",
+    "17:00〜17:30",
+  ];
 
   return (
     <div className="space-y-6">
@@ -154,14 +208,41 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
         <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
           <Calendar className="w-5 h-5 text-clover-700" />
-          会議アジェンダの事前作成（定例・事業所会議）
+          会議アジェンダの事前作成
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          {/* 日付入力（テキスト＋クイックボタン） */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">📅 会議予定日</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+              <span>📅 会議日（テキスト入力可）</span>
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => setQuickDate(-1)}
+                  className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-[10px]"
+                >
+                  昨日
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQuickDate(0)}
+                  className="px-1.5 py-0.5 bg-clover-100 hover:bg-clover-200 text-clover-800 font-bold rounded text-[10px]"
+                >
+                  今日
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQuickDate(1)}
+                  className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-[10px]"
+                >
+                  明日
+                </button>
+              </div>
+            </label>
             <input
-              type="date"
+              type="text"
+              placeholder="例：2026/8/21 または 8/21"
               value={meetingDate}
               onChange={(e) => setMeetingDate(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-clover-600 focus:bg-white transition"
@@ -184,6 +265,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
           </div>
         </div>
 
+        {/* 会議種別 & 参加者 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">📋 会議種別</label>
@@ -198,6 +280,15 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
                 </option>
               ))}
             </select>
+            {meetingType === "その他" && (
+              <input
+                type="text"
+                placeholder="会議種別名を入力（例: 業務改善検討会）"
+                value={customMeetingType}
+                onChange={(e) => setCustomMeetingType(e.target.value)}
+                className="w-full mt-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-clover-600 focus:bg-white transition"
+              />
+            )}
           </div>
 
           <div>
@@ -212,35 +303,64 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
           </div>
         </div>
 
-        {/* 想定時間 */}
+        {/* 予定時間 / 所要時間 */}
         <div className="mb-4">
-          <label className="block text-xs font-bold text-slate-700 mb-1">⏱️ 想定所要時間</label>
-          <div className="flex flex-wrap gap-1.5 mt-1">
-            {durations.map((d) => (
+          <label className="block text-xs font-bold text-slate-700 mb-1">⏱️ 予定時間 / 所要時間</label>
+          <input
+            type="text"
+            placeholder="例：10:00〜11:00（1時間）"
+            value={duration}
+            onChange={(e) => setDuration(e.target.value)}
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm outline-none focus:border-clover-600 focus:bg-white transition mb-1.5"
+          />
+          <div className="flex flex-wrap gap-1.5">
+            {durationSuggestions.map((s) => (
               <button
-                key={d}
+                key={s}
                 type="button"
-                onClick={() => setDuration(d)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
-                  duration === d
-                    ? "bg-clover-700 text-white font-bold"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
+                onClick={() => setDuration(s)}
+                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full text-xs transition"
               >
-                {d}
+                {s}
               </button>
             ))}
           </div>
         </div>
 
-        {/* 議題メモ */}
+        {/* 議題メモ（テンプレボタン付き） */}
         <div className="mb-5">
-          <label className="block text-xs font-bold text-slate-700 mb-1">
-            📝 今回話したいこと・背景・前回の課題
-          </label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-xs font-bold text-slate-700">
+              📝 今回話したいこと・背景・議題メモ
+            </label>
+            <div className="flex items-center gap-1">
+              <span className="text-[11px] text-slate-400">テンプレ挿入:</span>
+              <button
+                type="button"
+                onClick={() => insertTemplate("teirei")}
+                className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px]"
+              >
+                定例
+              </button>
+              <button
+                type="button"
+                onClick={() => insertTemplate("moushiokuri")}
+                className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px]"
+              >
+                申し送り
+              </button>
+              <button
+                type="button"
+                onClick={() => insertTemplate("iinkai")}
+                className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px]"
+              >
+                委員会
+              </button>
+            </div>
+          </div>
           <textarea
-            rows={4}
-            placeholder="例：&#10;・今月のヒヤリハット報告（転倒リスクの再確認）&#10;・新規スタッフ2名の同行スケジュール決定&#10;・送迎ルート見直しの進捗確認"
+            rows={5}
+            placeholder="例：&#10;・今月のヒヤリハット報告（転倒リスクの再確認）&#10;・新スタッフ2名の同行スケジュール決定&#10;・送迎ルート見直しの進捗確認"
             value={topics}
             onChange={(e) => setTopics(e.target.value)}
             className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:border-clover-600 focus:bg-white transition leading-relaxed"
@@ -298,7 +418,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
             />
           </div>
 
-          {/* 達成したい成果 */}
+          {/* 達成成果 */}
           <div className="p-4 bg-blue-50/70 border border-blue-200 rounded-xl">
             <label className="block text-xs font-bold text-blue-800 mb-1 flex items-center gap-1">
               <FileCheck className="w-3.5 h-3.5" /> 🏁 達成したい成果・決定事項（Outcome）
@@ -394,6 +514,12 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
                   <Save className="w-4 h-4" /> アジェンダを保存する
                 </>
               )}
+            </button>
+            <button
+              onClick={handleOpenGoogleCalendar}
+              className="px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-xs md:text-sm rounded-xl flex items-center gap-2 transition"
+            >
+              <CalendarPlus className="w-4 h-4" /> Googleカレンダーに登録
             </button>
             <button
               onClick={handleCopy}

@@ -6,7 +6,7 @@ const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 // ==========================================
-// アジェンダ生成（定例・事業所内会議特化）
+// アジェンダ生成
 // ==========================================
 export async function generateAgendaAI(params: {
   meetingDate: string;
@@ -61,7 +61,7 @@ ${params.topics || "（特記事項なし）"}
 }
 
 // ==========================================
-// 議事録生成（定例・事業所内会議特化）
+// 議事録生成（テキスト＋音声＋画像OCRマルチモーダル対応）
 // ==========================================
 export async function generateMinutesAI(params: {
   meetingDate: string;
@@ -72,6 +72,8 @@ export async function generateMinutesAI(params: {
   inputText?: string;
   audioBase64?: string;
   audioMimeType?: string;
+  imageBase64?: string;
+  imageMimeType?: string;
 }) {
   const model = genAI.getGenerativeModel({
     model: MODEL_NAME,
@@ -81,7 +83,7 @@ export async function generateMinutesAI(params: {
       responseSchema: {
         type: SchemaType.OBJECT,
         properties: {
-          transcript: { type: SchemaType.STRING, description: "音声がある場合の要点テキスト起こしまたは全文" },
+          transcript: { type: SchemaType.STRING, description: "音声または画像がある場合の要点テキスト起こしまたは全文" },
           summary: { type: SchemaType.STRING, description: "会議全体の要約（500〜2000文字）" },
           agenda_items: { type: SchemaType.STRING, description: "議題と振り返り（箇条書き・アジェンダとの対応）" },
           key_discussions: { type: SchemaType.STRING, description: "主な議論・発言（発言者：内容の形式）" },
@@ -104,7 +106,7 @@ export async function generateMinutesAI(params: {
   });
 
   const prompt = `あなたは介護事業所向けのプロフェッショナル会議ファシリテーターAIです。
-提供された情報（テキストメモ、および音声データ）をもとに、実務に直結する明瞭で詳細な議事録を作成してください。
+提供された情報（テキストメモ、音声データ、添付画像・ホワイトボード写真等）をもとに、実務に直結する明瞭で詳細な議事録を作成してください。
 
 【会議情報】
 - 会議日: ${params.meetingDate || "未記載"}
@@ -114,11 +116,11 @@ export async function generateMinutesAI(params: {
 ${params.agendaBody ? `\n【事前アジェンダ】\n${params.agendaBody}` : ""}
 
 【テキストメモ・入力データ】
-${params.inputText || "（テキスト入力なし：添付音声より生成）"}
+${params.inputText || "（テキスト入力なし：添付音声/画像より生成）"}
 
 【作成方針】
-1. 音声やテキストの情報を詳細までしっかりと読み込み、発言者の意図や結論に至った経緯を正確に記録してください。
-2. アジェンダがある場合は各議題に対応した議論・結論を整理してください。アジェンダ外の議論も客観的に拾い上げて整理してください。
+1. 音声、テキスト、添付画像（ホワイトボードや手書きメモ、配布資料）の情報を詳細まで読み込み、文字を正確に認識して議論の経緯と結論を記録してください。
+2. アジェンダがある場合は各議題に対応した議論・結論を整理してください。アジェンダ外の議論も客観的に整理してください。
 3. 発言者が特定できる場合は「氏名：〜」の形式で記録してください。
 4. アクションプランには必ず「担当者」と「期日（または目安時期）」を明記してください。
 5. 事業所運営やチームワーク、介護理念（利用者本位、安心・安全、スタッフ連携）に関する気づきを「組織文化・理念」に盛り込んでください。
@@ -127,11 +129,22 @@ ${params.inputText || "（テキスト入力なし：添付音声より生成）
 
   const contents: any[] = [];
 
+  // 音声データ
   if (params.audioBase64 && params.audioMimeType) {
     contents.push({
       inlineData: {
         data: params.audioBase64,
         mimeType: params.audioMimeType,
+      },
+    });
+  }
+
+  // 画像データ（ホワイトボード写真、手書きメモ、紙レジュメ）
+  if (params.imageBase64 && params.imageMimeType) {
+    contents.push({
+      inlineData: {
+        data: params.imageBase64,
+        mimeType: params.imageMimeType,
       },
     });
   }

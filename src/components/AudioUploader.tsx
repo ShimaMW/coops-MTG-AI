@@ -1,15 +1,31 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { UploadCloud, FileAudio, CheckCircle2, X } from "lucide-react";
+import { UploadCloud, FileAudio, Image as ImageIcon, FileText, CheckCircle2, X } from "lucide-react";
 
-interface AudioUploaderProps {
-  onFileLoaded: (base64: string, mimeType: string, fileName: string, textContent?: string) => void;
+interface MediaUploaderProps {
+  onFileLoaded: (
+    data: {
+      audioBase64?: string;
+      audioMimeType?: string;
+      imageBase64?: string;
+      imageMimeType?: string;
+      textContent?: string;
+      fileName: string;
+      size: string;
+      fileType: "audio" | "image" | "text";
+    }
+  ) => void;
   onClear: () => void;
 }
 
-export const AudioUploader: React.FC<AudioUploaderProps> = ({ onFileLoaded, onClear }) => {
-  const [selectedFile, setSelectedFile] = useState<{ name: string; size: string } | null>(null);
+export const MediaUploader: React.FC<MediaUploaderProps> = ({ onFileLoaded, onClear }) => {
+  const [selectedFile, setSelectedFile] = useState<{
+    name: string;
+    size: string;
+    type: "audio" | "image" | "text";
+    previewUrl?: string;
+  } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -17,34 +33,69 @@ export const AudioUploader: React.FC<AudioUploaderProps> = ({ onFileLoaded, onCl
     if (!file) return;
 
     const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
-    setSelectedFile({ name: file.name, size: `${sizeMB} MB` });
+    const mime = file.type || "";
 
-    // テキスト系ファイルの場合はテキスト抽出
+    // 1. 画像ファイル（ホワイトボード写真・手書きメモ・写真）
+    if (mime.startsWith("image/") || /\.(jpg|jpeg|png|webp|heic)$/i.test(file.name)) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const full = e.target?.result as string;
+        const base64 = full.split(",")[1];
+        const previewUrl = URL.createObjectURL(file);
+        setSelectedFile({ name: file.name, size: `${sizeMB} MB`, type: "image", previewUrl });
+        onFileLoaded({
+          imageBase64: base64,
+          imageMimeType: mime || "image/jpeg",
+          fileName: file.name,
+          size: `${sizeMB} MB`,
+          fileType: "image",
+        });
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    // 2. テキスト・マークダウン・CSV
     if (
-      file.type.startsWith("text/") ||
-      file.name.endsWith(".txt") ||
-      file.name.endsWith(".md") ||
-      file.name.endsWith(".csv")
+      mime.startsWith("text/") ||
+      /\.(txt|md|csv)$/i.test(file.name)
     ) {
       const reader = new FileReader();
       reader.onload = (e) => {
         const text = e.target?.result as string;
-        onFileLoaded("", file.type || "text/plain", file.name, text);
+        setSelectedFile({ name: file.name, size: `${sizeMB} MB`, type: "text" });
+        onFileLoaded({
+          textContent: text,
+          fileName: file.name,
+          size: `${sizeMB} MB`,
+          fileType: "text",
+        });
       };
       reader.readAsText(file);
-    } else {
-      // 音声・バイナリファイル
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64 = (e.target?.result as string).split(",")[1];
-        const mimeType = file.type || (file.name.endsWith(".m4a") ? "audio/m4a" : "audio/mp3");
-        onFileLoaded(base64, mimeType, file.name);
-      };
-      reader.readAsDataURL(file);
+      return;
     }
+
+    // 3. 音声ファイル（ボイスメモ .m4a, .mp3, .wav 等）
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = (e.target?.result as string).split(",")[1];
+      const audioMime = mime || (file.name.endsWith(".m4a") ? "audio/m4a" : "audio/mp3");
+      setSelectedFile({ name: file.name, size: `${sizeMB} MB`, type: "audio" });
+      onFileLoaded({
+        audioBase64: base64,
+        audioMimeType: audioMime,
+        fileName: file.name,
+        size: `${sizeMB} MB`,
+        fileType: "audio",
+      });
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleClear = () => {
+    if (selectedFile?.previewUrl) {
+      URL.revokeObjectURL(selectedFile.previewUrl);
+    }
     setSelectedFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
     onClear();
@@ -79,7 +130,7 @@ export const AudioUploader: React.FC<AudioUploaderProps> = ({ onFileLoaded, onCl
         onChange={(e) => {
           if (e.target.files?.[0]) handleFile(e.target.files[0]);
         }}
-        accept="audio/*,.m4a,.mp3,.wav,.aac,.webm,text/plain,.txt,.md,.csv"
+        accept="audio/*,.m4a,.mp3,.wav,.aac,.webm,image/*,.jpg,.jpeg,.png,.webp,text/plain,.txt,.md"
         className="hidden"
       />
 
@@ -87,12 +138,19 @@ export const AudioUploader: React.FC<AudioUploaderProps> = ({ onFileLoaded, onCl
         <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-emerald-200 shadow-sm">
           <div className="flex items-center gap-3 text-left overflow-hidden">
             <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
-              <FileAudio className="w-5 h-5" />
+              {selectedFile.type === "image" ? (
+                <ImageIcon className="w-5 h-5" />
+              ) : selectedFile.type === "text" ? (
+                <FileText className="w-5 h-5" />
+              ) : (
+                <FileAudio className="w-5 h-5" />
+              )}
             </div>
             <div className="overflow-hidden">
               <div className="text-xs font-bold text-slate-800 truncate">{selectedFile.name}</div>
               <div className="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" /> 取り込み完了 ({selectedFile.size})
+                <CheckCircle2 className="w-3 h-3" /> 取り込み完了 ({selectedFile.size}・
+                {selectedFile.type === "image" ? "写真OCR解析" : selectedFile.type === "audio" ? "音声解析" : "テキスト"})
               </div>
             </div>
           </div>
@@ -113,9 +171,9 @@ export const AudioUploader: React.FC<AudioUploaderProps> = ({ onFileLoaded, onCl
             <UploadCloud className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-sm font-bold text-slate-800">ボイスメモ / 録音ファイルを選択</div>
+            <div className="text-sm font-bold text-slate-800">ボイスメモ / 写真・資料を選択</div>
             <div className="text-xs text-slate-500 mt-0.5">
-              iPhoneボイスメモ(.m4a)、mp3、wav、テキストファイル等（ドラッグ＆ドロップ対応）
+              ボイスメモ(.m4a, mp3) ＆ ホワイトボード写真・紙資料(.jpg, .png)
             </div>
           </div>
         </div>

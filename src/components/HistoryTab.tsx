@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { MeetingRecord, UserProfile } from "@/lib/types";
 import { DEFAULT_DEPARTMENTS, DEFAULT_MEETING_TYPES, deleteMeetingRecord } from "@/lib/storage";
-import { downloadMeetingDocx, getMinutesPlainText, getAgendaPlainText, formatJPDate } from "@/lib/exportUtils";
+import { downloadMeetingDocx, getMinutesPlainText, getAgendaPlainText, getChatSummaryText, formatJPDate } from "@/lib/exportUtils";
 import {
   Table,
   Search,
@@ -18,6 +18,7 @@ import {
   X,
   Link as LinkIcon,
   CheckCircle2,
+  Share2,
 } from "lucide-react";
 
 interface HistoryTabProps {
@@ -344,7 +345,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                     <p className="whitespace-pre-wrap font-mono">{selectedRecord.agenda.agenda_items}</p>
                   </div>
 
-                  <div className="p-4 bg-emerald-50/70 border border-emerald-200">
+                  <div className="p-4 bg-emerald-50/70 rounded-xl border border-emerald-200">
                     <div className="font-bold text-emerald-900 mb-1">🏁 クロージング</div>
                     <p className="whitespace-pre-wrap">{selectedRecord.agenda.closing}</p>
                   </div>
@@ -353,11 +354,23 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
             </div>
 
             <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-end gap-2">
+              {modalTab === "minutes" && selectedRecord.minutes && (
+                <button
+                  onClick={() => {
+                    const text = getChatSummaryText(selectedRecord);
+                    navigator.clipboard.writeText(text);
+                    showToast("LINE WORKS / チャット用要約をコピーしました 📢");
+                  }}
+                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition"
+                >
+                  <Share2 className="w-3.5 h-3.5" /> LINE WORKS用コピー
+                </button>
+              )}
               <button
                 onClick={() => downloadMeetingDocx(selectedRecord)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition"
+                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition"
               >
-                <Download className="w-3.5 h-3.5" /> Word (.docx) 保存
+                <Download className="w-3.5 h-3.5" /> Word保存
               </button>
               <button
                 onClick={() => {
@@ -368,19 +381,19 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                   navigator.clipboard.writeText(text);
                   showToast("テキストをコピーしました ✓");
                 }}
-                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition"
+                className="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition"
               >
-                <Copy className="w-3.5 h-3.5" /> テキストコピー
+                <Copy className="w-3.5 h-3.5" /> 全文コピー
               </button>
               <button
                 onClick={() => window.print()}
-                className="px-4 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-bold text-xs rounded-xl flex items-center gap-1.5 transition"
+                className="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-bold text-xs rounded-xl flex items-center gap-1.5 transition"
               >
                 <Printer className="w-3.5 h-3.5" /> 印刷
               </button>
               <button
                 onClick={() => setSelectedRecord(null)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-xl transition"
+                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-xl transition"
               >
                 閉じる
               </button>

@@ -1,7 +1,7 @@
 import { MeetingRecord, UserProfile, AgendaDetails, MinutesDetails } from "./types";
 
-const MEETINGS_STORAGE_KEY = "coops_meetings_data_v3";
-const CURRENT_USER_KEY = "coops_current_user_v3";
+const MEETINGS_STORAGE_KEY = "coops_meetings_data_v4";
+const CURRENT_USER_KEY = "coops_current_user_v4";
 
 export const DEFAULT_DEPARTMENTS = [
   "訪問介護",
@@ -13,11 +13,12 @@ export const DEFAULT_DEPARTMENTS = [
 
 export const DEFAULT_MEETING_TYPES = [
   "月次定例ミーティング",
-  "日次終礼・引き継ぎ",
-  "看リハ合同ミーティング",
-  "リーダー・幹部会議",
-  "研修・勉強会",
-  "緊急対応・インシデント検討",
+  "日次申し送り",
+  "業務ミーティング",
+  "利用者カンファレンス",
+  "緊急対応、インシデント検討会",
+  "委員会会議",
+  "その他",
 ];
 
 export const DEFAULT_CURRENT_USER: UserProfile = {
@@ -28,9 +29,6 @@ export const DEFAULT_CURRENT_USER: UserProfile = {
   role: "admin",
 };
 
-// ==========================================
-// ユーザー情報
-// ==========================================
 export function getCurrentUser(): UserProfile {
   if (typeof window === "undefined") return DEFAULT_CURRENT_USER;
   const raw = localStorage.getItem(CURRENT_USER_KEY);
@@ -50,9 +48,6 @@ export function saveCurrentUser(user: UserProfile): void {
   localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
 }
 
-// ==========================================
-// 会議レコード一覧（アジェンダ ＆ 議事録統合）
-// ==========================================
 export function getMeetingRecords(): MeetingRecord[] {
   if (typeof window === "undefined") return [];
   const raw = localStorage.getItem(MEETINGS_STORAGE_KEY);
@@ -65,9 +60,6 @@ export function getMeetingRecords(): MeetingRecord[] {
   }
 }
 
-// ==========================================
-// アジェンダ保存
-// ==========================================
 export function saveAgendaRecord(params: {
   id?: string;
   meetingDate: string;
@@ -132,9 +124,6 @@ function createNewAgendaRecord(params: any, now: string): MeetingRecord {
   };
 }
 
-// ==========================================
-// 議事録保存（アジェンダ紐付け & 楽観的ロック）
-// ==========================================
 export function saveMinutesRecord(params: {
   recordId?: string;
   meetingDate: string;

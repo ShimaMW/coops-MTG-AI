@@ -10,6 +10,45 @@ export function formatJPDate(dateStr: string): string {
 }
 
 // ==========================================
+// Googleカレンダー 登録URL生成
+// ==========================================
+export function getGoogleCalendarUrl(params: {
+  title: string;
+  meetingDate: string;
+  duration?: string;
+  dept: string;
+  meetingType: string;
+  details: string;
+}): string {
+  const d = params.meetingDate.replace(/-/g, "").replace(/\//g, "");
+  const dateStr = d.length === 8 ? `${d}T100000/${d}T110000` : `${d}/${d}`;
+  const text = encodeURIComponent(`【${params.dept}】${params.meetingType}`);
+  const details = encodeURIComponent(params.details);
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${dateStr}&details=${details}`;
+}
+
+// ==========================================
+// LINE WORKS / チャット共有用サマリーテキスト
+// ==========================================
+export function getChatSummaryText(item: MeetingRecord): string {
+  if (!item.minutes) return "";
+  return [
+    `📢 【${item.dept}】${item.meetingType} 議事録サマリー`,
+    `📅 開催日: ${formatJPDate(item.meetingDate)}`,
+    `👥 参加者: ${item.participants || "（未指定）"}`,
+    "",
+    "📌 【全体要約】",
+    item.minutes.summary,
+    "",
+    "✨ 【決定事項・アクションプラン】",
+    item.minutes.action_plans,
+    "",
+    "🎉 【次回検討事項】",
+    item.minutes.next_agenda,
+  ].join("\n");
+}
+
+// ==========================================
 // Word (.docx) ファイル生成 & ダウンロード
 // ==========================================
 export async function downloadMeetingDocx(item: MeetingRecord): Promise<void> {
@@ -36,7 +75,7 @@ export async function downloadMeetingDocx(item: MeetingRecord): Promise<void> {
     new Paragraph({ text: "--------------------------------------------------" }),
   ];
 
-  // 1. 事前アジェンダセクション（存在する場合）
+  // 1. 事前アジェンダセクション
   if (item.agenda) {
     children.push(
       new Paragraph({ text: "【事前アジェンダ】", heading: HeadingLevel.HEADING_1 }),
@@ -62,7 +101,7 @@ export async function downloadMeetingDocx(item: MeetingRecord): Promise<void> {
     );
   }
 
-  // 2. 議事録セクション（存在する場合）
+  // 2. 議事録セクション
   if (item.minutes) {
     children.push(
       new Paragraph({ text: "【会議議事録】", heading: HeadingLevel.HEADING_1 }),
