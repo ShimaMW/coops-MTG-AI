@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { UserProfile, AgendaDetails } from "@/lib/types";
 import { DEFAULT_DEPARTMENTS, DEFAULT_MEETING_TYPES, saveAgendaRecord } from "@/lib/storage";
 import { formatJPDate, getGoogleCalendarUrl } from "@/lib/exportUtils";
+import { FeatureHelpAccordion } from "./FeatureHelpAccordion";
 import {
   Sparkles,
   Save,
@@ -291,6 +292,25 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
           <Calendar className="w-5 h-5 text-clover-700" />
           会議アジェンダの事前作成
         </h2>
+
+        {/* 使い方アコーディオン */}
+        <FeatureHelpAccordion
+          title="💡 アジェンダ作成の使い方・活用ポイント"
+          items={[
+            {
+              label: "事前準備",
+              text: "議題テンプレートを選ぶか、話したいメモを入力して「AIアジェンダを生成する」を押すと、目的・達成成果・議題の確認ポイントが自動設計されます。",
+            },
+            {
+              label: "時間設定",
+              text: "開始・終了時間を選ぶと所要時間が自動計算されます。下の「30分」「1時間」ボタンで手軽に枠をセットすることも可能です。",
+            },
+            {
+              label: "議事録連動",
+              text: "保存したアジェンダは「アジェンダのみ」として履歴に残り、会議後にワンタップで議事録作成へ引き継げます。「Googleカレンダーに登録」も可能です。",
+            },
+          ]}
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           {/* 日付入力 */}

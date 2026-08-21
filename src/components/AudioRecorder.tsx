@@ -195,7 +195,7 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
 
   return (
     <div
-      className={`border-2 rounded-2xl p-5 transition-all text-center ${
+      className={`border-2 rounded-2xl p-5 transition-all text-center h-full min-h-[190px] flex flex-col justify-center items-center ${
         isRecording
           ? "border-red-500 bg-red-50/50 shadow-md ring-4 ring-red-100"
           : "border-dashed border-slate-300 hover:border-clover-500 bg-slate-50/70"

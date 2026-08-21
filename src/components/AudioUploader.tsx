@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { UploadCloud, FileAudio, Image as ImageIcon, FileText, CheckCircle2, X } from "lucide-react";
+import { UploadCloud, FileAudio, Image as ImageIcon, FileText, CheckCircle2, X, FolderOpen } from "lucide-react";
 
 interface MediaUploaderProps {
   onFileLoaded: (
@@ -116,7 +116,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({ onFileLoaded, onCl
       onClick={() => {
         if (!selectedFile) fileInputRef.current?.click();
       }}
-      className={`border-2 border-dashed rounded-2xl p-5 text-center transition-all cursor-pointer ${
+      className={`border-2 border-dashed rounded-2xl p-5 text-center transition-all cursor-pointer h-full min-h-[190px] flex flex-col justify-center items-center ${
         selectedFile
           ? "border-emerald-500 bg-emerald-50/50"
           : isDragging
@@ -135,7 +135,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({ onFileLoaded, onCl
       />
 
       {selectedFile ? (
-        <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-emerald-200 shadow-sm">
+        <div className="w-full flex items-center justify-between bg-white p-3 rounded-xl border border-emerald-200 shadow-sm">
           <div className="flex items-center gap-3 text-left overflow-hidden">
             <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
               {selectedFile.type === "image" ? (
@@ -166,7 +166,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({ onFileLoaded, onCl
           </button>
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center gap-2">
+        <div className="flex flex-col items-center justify-center gap-2.5">
           <div className="w-12 h-12 rounded-full bg-clover-100 text-clover-700 flex items-center justify-center">
             <UploadCloud className="w-6 h-6" />
           </div>
@@ -176,6 +176,13 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({ onFileLoaded, onCl
               ボイスメモ(.m4a, mp3) ＆ ホワイトボード写真・紙資料(.jpg, .png)
             </div>
           </div>
+          <button
+            type="button"
+            className="mt-1 px-4 py-1.5 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold text-xs rounded-xl shadow-2xs flex items-center gap-1.5 transition"
+          >
+            <FolderOpen className="w-3.5 h-3.5 text-clover-700" />
+            ファイルを選択
+          </button>
         </div>
       )}
     </div>

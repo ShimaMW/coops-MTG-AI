@@ -6,6 +6,7 @@ import { DEFAULT_DEPARTMENTS, DEFAULT_MEETING_TYPES, saveMinutesRecord } from "@
 import { downloadMeetingDocx, getMinutesPlainText, getChatSummaryText, formatJPDate } from "@/lib/exportUtils";
 import { AudioRecorder } from "./AudioRecorder";
 import { MediaUploader } from "./AudioUploader";
+import { FeatureHelpAccordion } from "./FeatureHelpAccordion";
 import {
   Sparkles,
   Save,
@@ -349,6 +350,21 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             ステップ 1: 会議基本情報
           </h2>
 
+          {/* Step 1 説明アコーディオン */}
+          <FeatureHelpAccordion
+            title="💡 会議基本情報の入力ポイント"
+            items={[
+              {
+                label: "アジェンダ連動",
+                text: "事前にアジェンダを作成している場合は、ドロップダウンから選択すると日時・部署・種別・議題内容が自動入力され、同一レコードとして紐付け保存されます。",
+              },
+              {
+                label: "新規作成",
+                text: "アジェンダがない場合でも、会議日（テキストまたはカレンダー）・部署・会議種別・参加者を入力してすぐに議事録を作成できます。",
+              },
+            ]}
+          />
+
           {/* 事前アジェンダ連携 */}
           {agendaRecords.length > 0 && (
             <div className="p-3.5 bg-clover-50/80 border border-clover-200 rounded-xl">
@@ -491,45 +507,69 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             ステップ 2: 音声データの提出 / ブラウザ録音 ➔ 文字起こし
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+          {/* Step 2 説明アコーディオン */}
+          <FeatureHelpAccordion
+            title="💡 音声データの取り込みと文字起こし機能について"
+            items={[
+              {
+                label: "ボイスメモ提出",
+                text: "iPhoneのボイスメモ（.m4a）やICレコーダー・Androidの録音ファイル（.mp3, .wav等）を直接アップロードできます。Gemini 3.5 Flash-Liteが音声を直接高精度に解析します。",
+              },
+              {
+                label: "ブラウザ直接録音",
+                text: "パソコンやスマホのマイクを使ってこの画面で直接録音できます。画面のスリープを自動防止し、リアルタイムで文字起こしプレビューを表示します。",
+              },
+              {
+                label: "音声なし・手動メモ",
+                text: "音声データがない場合でも、下のテキスト欄に発言メモや要点を手動で入力して次へ進むことができます。",
+              },
+            ]}
+          />
+
+          {/* 左右均等グリッド */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+            <div className="flex flex-col h-full">
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 📱 スマホのボイスメモ（iPhone .m4a / Androidレコーダー）
               </label>
-              <MediaUploader
-                onFileLoaded={(data) => {
-                  if (data.audioBase64) {
-                    setAudioBase64(data.audioBase64);
-                    setAudioMimeType(data.audioMimeType || "audio/m4a");
-                    setAudioFileName(data.fileName);
-                    showToast(`音声「${data.fileName}」をセットしました ✓`);
-                  }
-                }}
-                onClear={() => {
-                  setAudioBase64(null);
-                  setAudioMimeType(null);
-                  setAudioFileName(null);
-                }}
-              />
+              <div className="flex-1 flex flex-col">
+                <MediaUploader
+                  onFileLoaded={(data) => {
+                    if (data.audioBase64) {
+                      setAudioBase64(data.audioBase64);
+                      setAudioMimeType(data.audioMimeType || "audio/m4a");
+                      setAudioFileName(data.fileName);
+                      showToast(`音声「${data.fileName}」をセットしました ✓`);
+                    }
+                  }}
+                  onClear={() => {
+                    setAudioBase64(null);
+                    setAudioMimeType(null);
+                    setAudioFileName(null);
+                  }}
+                />
+              </div>
             </div>
 
-            <div>
+            <div className="flex flex-col h-full">
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 🎙️ ブラウザで今すぐ録音（スリープ防止）
               </label>
-              <AudioRecorder
-                onRecordingComplete={(base64, mime, liveTranscript) => {
-                  setAudioBase64(base64);
-                  setAudioMimeType(mime);
-                  setAudioFileName("ブラウザ録音データ.webm");
-                  if (liveTranscript) {
-                    setTranscriptPreview((prev) =>
-                      prev ? `${prev}\n\n${liveTranscript}` : liveTranscript
-                    );
-                  }
-                  showToast("録音データをセットしました ✓");
-                }}
-              />
+              <div className="flex-1 flex flex-col">
+                <AudioRecorder
+                  onRecordingComplete={(base64, mime, liveTranscript) => {
+                    setAudioBase64(base64);
+                    setAudioMimeType(mime);
+                    setAudioFileName("ブラウザ録音データ.webm");
+                    if (liveTranscript) {
+                      setTranscriptPreview((prev) =>
+                        prev ? `${prev}\n\n${liveTranscript}` : liveTranscript
+                      );
+                    }
+                    showToast("録音データをセットしました ✓");
+                  }}
+                />
+              </div>
             </div>
           </div>
 
@@ -576,43 +616,60 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             ステップ 3: 会議資料（写真・メモ）の共有 ＆ AIへの指示
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Step 3 説明アコーディオン */}
+          <FeatureHelpAccordion
+            title="💡 資料写真OCR解析とAIへのフォーカス指示について"
+            items={[
+              {
+                label: "ホワイトボードOCR",
+                text: "会議室のホワイトボードや紙の配布資料、手書きメモの写真をアップロードすると、AIが画像を文字認識（OCR）して議事録の議論や決定事項に統合します。",
+              },
+              {
+                label: "AIフォーカス指示",
+                text: "「決定事項と担当者を重点的に」「対立点を詳しく残す」「理念（利用者本位）の観点を強調」など、AIに意識してほしいまとめ方の重点をワンタップまたは自由テキストで指定できます。",
+              },
+            ]}
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
             {/* 写真アップローダー */}
-            <div>
+            <div className="flex flex-col h-full">
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 📷 ホワイトボード写真・手書きメモ・配布資料（OCR解析）
               </label>
-              <MediaUploader
-                onFileLoaded={(data) => {
-                  if (data.imageBase64) {
-                    setImageBase64(data.imageBase64);
-                    setImageMimeType(data.imageMimeType || "image/jpeg");
-                    setImageFileName(data.fileName);
-                    showToast(`写真「${data.fileName}」を取り込みました（AIがOCR解析します）✓`);
-                  } else if (data.textContent) {
-                    setInputText((prev) => (prev ? `${prev}\n\n${data.textContent}` : data.textContent!));
-                    showToast("テキストを取り込みました ✓");
-                  }
-                }}
-                onClear={() => {
-                  setImageBase64(null);
-                  setImageMimeType(null);
-                  setImageFileName(null);
-                }}
-              />
+              <div className="flex-1 flex flex-col">
+                <MediaUploader
+                  onFileLoaded={(data) => {
+                    if (data.imageBase64) {
+                      setImageBase64(data.imageBase64);
+                      setImageMimeType(data.imageMimeType || "image/jpeg");
+                      setImageFileName(data.fileName);
+                      showToast(`写真「${data.fileName}」を取り込みました（AIがOCR解析します）✓`);
+                    } else if (data.textContent) {
+                      setInputText((prev) => (prev ? `${prev}\n\n${data.textContent}` : data.textContent!));
+                      showToast("テキストを取り込みました ✓");
+                    }
+                  }}
+                  onClear={() => {
+                    setImageBase64(null);
+                    setImageMimeType(null);
+                    setImageFileName(null);
+                  }}
+                />
+              </div>
             </div>
 
             {/* 追加テキストメモ */}
-            <div>
+            <div className="flex flex-col h-full">
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 📝 追加テキストメモ・補足事項（任意）
               </label>
               <textarea
-                rows={5}
+                rows={6}
                 placeholder="会議の補足事項や、写真に関するメモがあれば入力してください。"
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:border-clover-600 focus:bg-white transition leading-relaxed"
+                className="w-full flex-1 bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:border-clover-600 focus:bg-white transition leading-relaxed"
               ></textarea>
             </div>
           </div>
@@ -704,6 +761,21 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
               <ArrowLeft className="w-3.5 h-3.5" /> データ入力に戻る
             </button>
           </div>
+
+          {/* Step 4 説明アコーディオン */}
+          <FeatureHelpAccordion
+            title="💡 議事録の確認・編集・共有方法について"
+            items={[
+              {
+                label: "自由な編集",
+                text: "各セクションの枠内をクリックして、文章の追記・修正が自由に行えます。「議事録を保存する」を押すとログ一覧に最新状態で保存されます。",
+              },
+              {
+                label: "ワンタップ共有",
+                text: "「LINE WORKS用コピー」で要約テキストをクリップボードにコピーし、チャットツールへ即座に共有できます。「Word保存」で公式文書ファイル（.docx）をダウンロードできます。",
+              },
+            ]}
+          />
 
           {/* 1. 会議要約 */}
           <div className="p-4 bg-clover-50/70 border border-clover-200 rounded-xl">
