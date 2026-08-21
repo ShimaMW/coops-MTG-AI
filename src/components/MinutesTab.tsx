@@ -290,38 +290,49 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* 4ステップ インジケーター */}
-      <div className="flex items-center justify-between max-w-xl mx-auto mb-6 no-print overflow-x-auto px-2">
-        {[
-          { num: 1, label: "1. 会議情報" },
-          { num: 2, label: "2. 音声・文字起こし" },
-          { num: 3, label: "3. 資料写真・メモ・指示" },
-          { num: 4, label: "4. 議事録完成" },
-        ].map((s, idx) => (
-          <React.Fragment key={s.num}>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <div
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-all ${
-                  step === s.num
-                    ? "bg-clover-700 text-white shadow"
-                    : step > s.num
-                    ? "bg-emerald-600 text-white"
-                    : "bg-slate-200 text-slate-500"
+      {/* ── 4ステップ インジケーター（全幅フィット・スクロールなし） ── */}
+      <div className="w-full bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs mb-6 no-print">
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { num: 1, label: "1. 会議情報" },
+            { num: 2, label: "2. 音声・文字起こし" },
+            { num: 3, label: "3. 資料写真・指示" },
+            { num: 4, label: "4. 議事録完成" },
+          ].map((s) => {
+            const isCurrent = step === s.num;
+            const isPassed = step > s.num;
+            return (
+              <button
+                key={s.num}
+                type="button"
+                onClick={() => {
+                  // 過去のステップには自由に戻れる
+                  if (s.num < step) setStep(s.num as any);
+                }}
+                className={`flex items-center justify-center gap-1.5 py-2 px-1 rounded-xl transition-all ${
+                  isCurrent
+                    ? "bg-clover-700 text-white font-bold shadow-xs"
+                    : isPassed
+                    ? "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 font-medium cursor-pointer"
+                    : "bg-slate-50 text-slate-400 cursor-default"
                 }`}
               >
-                {step > s.num ? "✓" : s.num}
-              </div>
-              <span
-                className={`text-xs ${
-                  step === s.num ? "text-clover-800 font-bold" : "text-slate-500"
-                }`}
-              >
-                {s.label}
-              </span>
-            </div>
-            {idx < 3 && <div className="h-0.5 w-6 sm:w-10 bg-slate-200 flex-shrink-0"></div>}
-          </React.Fragment>
-        ))}
+                <div
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                    isCurrent
+                      ? "bg-white text-clover-800"
+                      : isPassed
+                      ? "bg-emerald-600 text-white"
+                      : "bg-slate-200 text-slate-500"
+                  }`}
+                >
+                  {isPassed ? "✓" : s.num}
+                </div>
+                <span className="text-[11px] sm:text-xs whitespace-nowrap truncate">{s.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── STEP 1: 会議基本情報 ── */}
@@ -356,7 +367,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* 日付入力（テキスト＋カレンダーUI） */}
+            {/* 日付入力 */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
                 <span>📅 会議日（テキスト＆カレンダー選択）</span>
@@ -545,7 +556,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
               onClick={() => setStep(3)}
               className="px-6 py-2.5 bg-clover-700 hover:bg-clover-800 text-white font-bold text-sm rounded-xl shadow-sm flex items-center gap-2 transition"
             >
-              次へ：資料写真・メモ・AI指示 <ArrowRight className="w-4 h-4" />
+              次へ：資料写真・指示 <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -560,7 +571,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* ホワイトボード写真・紙資料アップローダー */}
+            {/* 写真アップローダー */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 📷 ホワイトボード写真・手書きメモ・配布資料（OCR解析）
@@ -600,7 +611,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             </div>
           </div>
 
-          {/* AIへの指示・フォーカスポイント */}
+          {/* AIへの指示 */}
           <div className="p-4 bg-purple-50/70 border border-purple-200 rounded-xl space-y-2">
             <label className="block text-xs font-bold text-purple-900 flex items-center gap-1.5">
               <Sliders className="w-3.5 h-3.5 text-purple-700" />
