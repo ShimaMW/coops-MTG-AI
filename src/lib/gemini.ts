@@ -34,6 +34,9 @@ export async function generateAgendaAI(params: {
   participants: string;
   duration?: string;
   topics: string;
+  imageBase64?: string;
+  imageMimeType?: string;
+  attachmentText?: string;
 }) {
   const model = genAI.getGenerativeModel({
     model: MODEL_NAME,
@@ -57,7 +60,7 @@ export async function generateAgendaAI(params: {
   });
 
   const prompt = `あなたは介護事業所の会議ファシリテーターAIです。
-以下の会議情報と議題メモをもとに、実務的で進行しやすい会議アジェンダを作成してください。
+以下の会議情報、議題メモ、および添付資料（画像・テキスト）をもとに、実務的で進行しやすい会議アジェンダを作成してください。
 
 【会議情報】
 - 会議日: ${params.meetingDate || "未定"}
@@ -68,13 +71,29 @@ export async function generateAgendaAI(params: {
 
 【議題メモ（ユーザー入力）】
 ${params.topics || "（特記事項なし）"}
+${params.attachmentText ? `\n【添付資料テキスト】\n${params.attachmentText}` : ""}
 
 【作成方針】
+- 添付された画像資料（ホワイトボード写真、前月報告書、企画案等）やテキスト資料がある場合は、その内容・データを詳細に読み解き、今回の会議で協議・決定すべき論点としてアジェンダに反映してください。
 - 各議題には「確認すべきポイント」「注意点」「AIからのアドバイス」を追記してください。
 - 介護事業所の運営・業務効率化・スタッフ連携・安全管理・クローバーイズム（組織理念）の観点を盛り込んでください。
 - 【報告】【決定】【議論】等の種別を各議題に付与してください。すべて日本語表記とし、英語表記は使用しないでください。`;
 
-  const result = await model.generateContent(prompt);
+  const contents: any[] = [];
+
+  // 画像データ（ホワイトボード写真、手書きメモ、前月レジュメ写真等）
+  if (params.imageBase64 && params.imageMimeType) {
+    contents.push({
+      inlineData: {
+        data: params.imageBase64,
+        mimeType: params.imageMimeType,
+      },
+    });
+  }
+
+  contents.push(prompt);
+
+  const result = await model.generateContent(contents);
   const text = result.response.text();
   return cleanAndParseJson(text);
 }

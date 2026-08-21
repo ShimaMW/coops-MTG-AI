@@ -3,8 +3,9 @@
 import React, { useState } from "react";
 import { UserProfile, AgendaDetails } from "@/lib/types";
 import { DEFAULT_DEPARTMENTS, DEFAULT_MEETING_TYPES, saveAgendaRecord } from "@/lib/storage";
-import { formatJPDate, getGoogleCalendarUrl } from "@/lib/exportUtils";
+import { getGoogleCalendarUrl } from "@/lib/exportUtils";
 import { FeatureHelpAccordion } from "./FeatureHelpAccordion";
+import { MediaUploader } from "./AudioUploader";
 import {
   Sparkles,
   Save,
@@ -19,6 +20,7 @@ import {
   ArrowRight,
   CalendarPlus,
   Edit3,
+  Paperclip,
 } from "lucide-react";
 
 interface AgendaTabProps {
@@ -99,8 +101,15 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
   const [isManualDuration, setIsManualDuration] = useState(false);
   const [manualDurationText, setManualDurationText] = useState("");
 
+  // 議題メモ & テンプレート
   const [topics, setTopics] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
+
+  // 添付資料（写真OCR / テキスト）
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [imageMimeType, setImageMimeType] = useState<string | null>(null);
+  const [attachmentFileName, setAttachmentFileName] = useState<string | null>(null);
+  const [attachmentText, setAttachmentText] = useState<string>("");
 
   const [isLoading, setIsLoading] = useState(false);
   const [generatedAgenda, setGeneratedAgenda] = useState<AgendaDetails | null>(null);
@@ -195,6 +204,9 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
           participants,
           duration: currentDurationLabel,
           topics,
+          imageBase64,
+          imageMimeType,
+          attachmentText,
         }),
       });
 
@@ -204,7 +216,13 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
       }
 
       const data = await res.json();
-      setGeneratedAgenda(data);
+      setGeneratedAgenda({
+        ...data,
+        attachmentFileName: attachmentFileName || undefined,
+        imageBase64: imageBase64 || undefined,
+        imageMimeType: imageMimeType || undefined,
+        attachmentText: attachmentText || undefined,
+      });
       showToast("アジェンダを生成しました ✨");
     } catch (err: any) {
       showToast("エラー: " + err.message, "error");
@@ -227,7 +245,13 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
         participants,
         duration: currentDurationLabel,
         userTopics: topics,
-        agenda: generatedAgenda,
+        agenda: {
+          ...generatedAgenda,
+          attachmentFileName: attachmentFileName || undefined,
+          imageBase64: imageBase64 || undefined,
+          imageMimeType: imageMimeType || undefined,
+          attachmentText: attachmentText || undefined,
+        },
         createdById: currentUser.id,
       });
 
@@ -289,7 +313,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
       {/* 入力フォーム */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
         <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-clover-700" />
+          <Calendar className="w-5 h-5 text-slate-700" />
           会議アジェンダの事前作成
         </h2>
 
@@ -302,8 +326,8 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
               text: "議題テンプレートを選ぶか、話したいメモを入力して「AIアジェンダを生成する」を押すと、目的・達成成果・議題の確認ポイントが自動設計されます。",
             },
             {
-              label: "時間設定",
-              text: "開始・終了時間を選ぶと所要時間が自動計算されます。下の「30分」「1時間」ボタンで手軽に枠をセットすることも可能です。",
+              label: "資料添付",
+              text: "前月の稼働実績や事故報告書、ホワイトボード写真・手書きメモを添付すると、AIが内容を読み込んで具体的な論点をアジェンダに自動反映します。",
             },
             {
               label: "議事録連動",
@@ -328,7 +352,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
                 <button
                   type="button"
                   onClick={() => setQuickDate(0)}
-                  className="px-1.5 py-0.5 bg-clover-100 hover:bg-clover-200 text-clover-800 font-bold rounded text-[10px]"
+                  className="px-1.5 py-0.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded text-[10px]"
                 >
                   今日
                 </button>
@@ -347,7 +371,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
                 placeholder="2026/8/21"
                 value={meetingDate}
                 onChange={(e) => setMeetingDate(e.target.value)}
-                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-clover-600 focus:bg-white transition"
+                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition"
               />
               <div className="relative">
                 <input
@@ -360,7 +384,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
                   type="button"
                   className="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl flex items-center justify-center transition border border-slate-200"
                 >
-                  <Calendar className="w-4 h-4 text-clover-700" />
+                  <Calendar className="w-4 h-4 text-slate-700" />
                 </button>
               </div>
             </div>
@@ -371,7 +395,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
             <select
               value={dept}
               onChange={(e) => setDept(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-clover-600 focus:bg-white transition"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition"
             >
               {DEFAULT_DEPARTMENTS.map((d) => (
                 <option key={d} value={d}>
@@ -389,7 +413,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
             <select
               value={meetingType}
               onChange={(e) => setMeetingType(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-clover-600 focus:bg-white transition"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition"
             >
               {DEFAULT_MEETING_TYPES.map((t) => (
                 <option key={t} value={t}>
@@ -403,7 +427,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
                 placeholder="会議種別名を入力（例: 業務改善検討会）"
                 value={customMeetingType}
                 onChange={(e) => setCustomMeetingType(e.target.value)}
-                className="w-full mt-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-clover-600 focus:bg-white transition"
+                className="w-full mt-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-slate-600 focus:bg-white transition"
               />
             )}
           </div>
@@ -415,7 +439,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
               placeholder="例：佐藤、田中、高橋、渡辺"
               value={participants}
               onChange={(e) => setParticipants(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-clover-600 focus:bg-white transition"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition"
             />
           </div>
         </div>
@@ -424,7 +448,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
         <div className="mb-4">
           <div className="flex items-center justify-between mb-1">
             <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-clover-700" />
+              <Clock className="w-3.5 h-3.5 text-slate-700" />
               予定時間
             </label>
             <button
@@ -435,7 +459,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
                 }
                 setIsManualDuration(!isManualDuration);
               }}
-              className="text-[11px] text-clover-800 hover:text-clover-900 font-medium flex items-center gap-1"
+              className="text-[11px] text-slate-600 hover:text-slate-900 font-medium flex items-center gap-1"
             >
               <Edit3 className="w-3 h-3" />
               {isManualDuration ? "時間ピッカーに戻す" : "自由テキストで入力"}
@@ -449,7 +473,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
               placeholder="例：10:00〜11:30、または 1時間"
               value={manualDurationText}
               onChange={(e) => setManualDurationText(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-clover-600 focus:bg-white transition"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition"
             />
           ) : (
             /* 一体型タイムピッカー */
@@ -462,7 +486,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
                       type="time"
                       value={startTime}
                       onChange={(e) => setStartTime(e.target.value)}
-                      className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-sm font-bold text-slate-800 outline-none focus:border-clover-600 transition"
+                      className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-sm font-bold text-slate-800 outline-none focus:border-slate-600 transition"
                     />
                   </div>
 
@@ -474,13 +498,13 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
                       type="time"
                       value={endTime}
                       onChange={(e) => setEndTime(e.target.value)}
-                      className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-sm font-bold text-slate-800 outline-none focus:border-clover-600 transition"
+                      className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-sm font-bold text-slate-800 outline-none focus:border-slate-600 transition"
                     />
                   </div>
                 </div>
 
                 {/* 自動計算された所要時間バッジ */}
-                <div className="bg-clover-100 text-clover-900 border border-clover-300 font-bold text-xs px-3 py-1 rounded-full">
+                <div className="bg-slate-200 text-slate-800 border border-slate-300 font-bold text-xs px-3 py-1 rounded-full">
                   ⏱️ {calculateDurationMinutes(startTime, endTime)}
                 </div>
               </div>
@@ -509,36 +533,69 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
           )}
         </div>
 
-        {/* 議題メモ（ドロップダウン式テンプレート選択付き） */}
-        <div className="mb-5">
-          <div className="mb-2">
+        {/* 議題メモ ＆ 添付資料エリア（2カラム） */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+          {/* 左：議題メモ */}
+          <div className="flex flex-col h-full">
+            <div className="mb-2">
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                💡 介護事業所向け 議題テンプレート
+              </label>
+              <select
+                value={selectedTemplateId}
+                onChange={(e) => handleSelectTemplate(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs md:text-sm text-slate-800 font-medium outline-none focus:border-slate-600"
+              >
+                <option value="">― テンプレートを選択して議題に流し込む ―</option>
+                {AGENDA_TEMPLATES.map((tmpl) => (
+                  <option key={tmpl.id} value={tmpl.id}>
+                    {tmpl.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <label className="block text-xs font-bold text-slate-700 mb-1">
-              💡 介護事業所向け 議題テンプレート（ドロップダウンから選択可能）
+              📝 今回話したいこと・背景・議題メモ
             </label>
-            <select
-              value={selectedTemplateId}
-              onChange={(e) => handleSelectTemplate(e.target.value)}
-              className="w-full bg-clover-50/70 border border-clover-300 rounded-xl px-3 py-2 text-xs md:text-sm text-clover-900 font-medium outline-none focus:ring-2 focus:ring-clover-500/20"
-            >
-              <option value="">― テンプレートを選択して議題に流し込む ―</option>
-              {AGENDA_TEMPLATES.map((tmpl) => (
-                <option key={tmpl.id} value={tmpl.id}>
-                  {tmpl.name}
-                </option>
-              ))}
-            </select>
+            <textarea
+              rows={5}
+              placeholder="例：&#10;・今月のヒヤリハット報告（転倒リスクの再確認）&#10;・新スタッフ2名の同行スケジュール決定&#10;・送迎ルート見直しの進捗確認"
+              value={topics}
+              onChange={(e) => setTopics(e.target.value)}
+              className="w-full flex-1 bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:border-slate-600 focus:bg-white transition leading-relaxed font-mono"
+            ></textarea>
           </div>
 
-          <label className="block text-xs font-bold text-slate-700 mb-1">
-            📝 今回話したいこと・背景・議題メモ（自由に編集・追記可能）
-          </label>
-          <textarea
-            rows={5}
-            placeholder="例：&#10;・今月のヒヤリハット報告（転倒リスクの再確認）&#10;・新スタッフ2名の同行スケジュール決定&#10;・送迎ルート見直しの進捗確認"
-            value={topics}
-            onChange={(e) => setTopics(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:border-clover-600 focus:bg-white transition leading-relaxed font-mono"
-          ></textarea>
+          {/* 右：事前資料・写真の添付 */}
+          <div className="flex flex-col h-full">
+            <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+              <Paperclip className="w-3.5 h-3.5 text-slate-600" />
+              📎 事前資料・写真の添付（ホワイトボード写真、前月報告OCR）
+            </label>
+            <div className="flex-1 flex flex-col">
+              <MediaUploader
+                onFileLoaded={(data) => {
+                  if (data.imageBase64) {
+                    setImageBase64(data.imageBase64);
+                    setImageMimeType(data.imageMimeType || "image/jpeg");
+                    setAttachmentFileName(data.fileName);
+                    showToast(`資料「${data.fileName}」を取り込みました（AIがOCR解析します）✓`);
+                  } else if (data.textContent) {
+                    setAttachmentText((prev) => (prev ? `${prev}\n\n${data.textContent}` : data.textContent!));
+                    setAttachmentFileName(data.fileName);
+                    showToast(`テキスト資料「${data.fileName}」を取り込みました ✓`);
+                  }
+                }}
+                onClear={() => {
+                  setImageBase64(null);
+                  setImageMimeType(null);
+                  setAttachmentFileName(null);
+                  setAttachmentText("");
+                }}
+              />
+            </div>
+          </div>
         </div>
 
         <div className="text-center">

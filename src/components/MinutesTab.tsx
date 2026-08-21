@@ -118,7 +118,20 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
         setCustomMeetingType(rec.meetingType);
       }
       setParticipants(rec.participants);
-      showToast("アジェンダ情報を読み込みました ✓");
+
+      // アジェンダの添付資料をStep 3へ自動引き継ぎ
+      if (rec.agenda?.imageBase64) {
+        setImageBase64(rec.agenda.imageBase64);
+        setImageMimeType(rec.agenda.imageMimeType || "image/jpeg");
+        setImageFileName(rec.agenda.attachmentFileName || "事前アジェンダ添付資料");
+      }
+      if (rec.agenda?.attachmentText) {
+        setInputText((prev) =>
+          prev ? `${prev}\n\n${rec.agenda?.attachmentText}` : rec.agenda!.attachmentText!
+        );
+      }
+
+      showToast("アジェンダ情報（添付資料含む）を読み込みました ✓");
     }
   };
 

@@ -16,6 +16,10 @@ export interface AgendaDetails {
   agenda_items: string;
   closing: string;
   full_text: string;
+  attachmentFileName?: string;
+  imageBase64?: string;
+  imageMimeType?: string;
+  attachmentText?: string;
 }
 
 export interface MinutesDetails {
