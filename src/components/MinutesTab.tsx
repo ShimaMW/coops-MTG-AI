@@ -328,7 +328,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
                     : "text-slate-400"
                 }`}
               >
-                {s.num}. {s.label}
+                {s.label}
               </span>
             </button>
             {idx < 3 && (
