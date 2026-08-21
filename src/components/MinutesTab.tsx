@@ -290,49 +290,54 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* ── 4ステップ インジケーター（全幅フィット・スクロールなし） ── */}
-      <div className="w-full bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs mb-6 no-print">
-        <div className="grid grid-cols-4 gap-2">
-          {[
-            { num: 1, label: "1. 会議情報" },
-            { num: 2, label: "2. 音声・文字起こし" },
-            { num: 3, label: "3. 資料写真・指示" },
-            { num: 4, label: "4. 議事録完成" },
-          ].map((s) => {
-            const isCurrent = step === s.num;
-            const isPassed = step > s.num;
-            return (
-              <button
-                key={s.num}
-                type="button"
-                onClick={() => {
-                  // 過去のステップには自由に戻れる
-                  if (s.num < step) setStep(s.num as any);
-                }}
-                className={`flex items-center justify-center gap-1.5 py-2 px-1 rounded-xl transition-all ${
-                  isCurrent
-                    ? "bg-clover-700 text-white font-bold shadow-xs"
-                    : isPassed
-                    ? "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 font-medium cursor-pointer"
-                    : "bg-slate-50 text-slate-400 cursor-default"
+      {/* ── 4ステップ インジケーター（丸数字＋コネクタ線デザイン・全幅フィット） ── */}
+      <div className="flex items-center justify-between w-full max-w-2xl mx-auto mb-6 no-print px-1 sm:px-2">
+        {[
+          { num: 1, label: "会議情報" },
+          { num: 2, label: "音声・文字起こし" },
+          { num: 3, label: "資料写真・指示" },
+          { num: 4, label: "議事録完成" },
+        ].map((s, idx) => (
+          <React.Fragment key={s.num}>
+            <button
+              type="button"
+              onClick={() => {
+                if (s.num < step) setStep(s.num as any);
+              }}
+              className="flex items-center gap-1.5 sm:gap-2 cursor-pointer group focus:outline-none"
+            >
+              <div
+                className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[11px] sm:text-xs font-bold transition-all ${
+                  step === s.num
+                    ? "bg-clover-700 text-white shadow-md scale-105"
+                    : step > s.num
+                    ? "bg-emerald-600 text-white"
+                    : "bg-slate-200 text-slate-500"
                 }`}
               >
-                <div
-                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                    isCurrent
-                      ? "bg-white text-clover-800"
-                      : isPassed
-                      ? "bg-emerald-600 text-white"
-                      : "bg-slate-200 text-slate-500"
-                  }`}
-                >
-                  {isPassed ? "✓" : s.num}
-                </div>
-                <span className="text-[11px] sm:text-xs whitespace-nowrap truncate">{s.label}</span>
-              </button>
-            );
-          })}
-        </div>
+                {step > s.num ? "✓" : s.num}
+              </div>
+              <span
+                className={`text-[11px] sm:text-xs whitespace-nowrap transition-colors ${
+                  step === s.num
+                    ? "text-clover-900 font-bold"
+                    : step > s.num
+                    ? "text-slate-700 group-hover:text-clover-700 font-medium"
+                    : "text-slate-400"
+                }`}
+              >
+                {s.num}. {s.label}
+              </span>
+            </button>
+            {idx < 3 && (
+              <div
+                className={`flex-1 h-0.5 mx-1.5 sm:mx-3 transition-all ${
+                  step > idx + 1 ? "bg-emerald-500" : "bg-slate-200"
+                }`}
+              />
+            )}
+          </React.Fragment>
+        ))}
       </div>
 
       {/* ── STEP 1: 会議基本情報 ── */}
