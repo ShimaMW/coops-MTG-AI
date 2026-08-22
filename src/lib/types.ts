@@ -8,6 +8,17 @@ export interface UserProfile {
   role: UserRole;
 }
 
+export interface UploadedFileItem {
+  id: string;
+  name: string;
+  size: string;
+  type: "audio" | "image" | "text" | "pdf";
+  base64?: string;
+  mimeType?: string;
+  textContent?: string;
+  previewUrl?: string;
+}
+
 export interface AgendaDetails {
   title: string;
   purpose: string;
@@ -16,6 +27,8 @@ export interface AgendaDetails {
   agenda_items: string;
   closing: string;
   full_text: string;
+  attachments?: UploadedFileItem[];
+  // 後方互換性
   attachmentFileName?: string;
   imageBase64?: string;
   imageMimeType?: string;
@@ -25,6 +38,7 @@ export interface AgendaDetails {
 export interface MinutesDetails {
   inputText?: string;
   audioFileName?: string;
+  attachments?: UploadedFileItem[];
   transcript?: string;
   summary: string; // 1. 会議要約
   discussions: string; // 2. 議論内容・経緯

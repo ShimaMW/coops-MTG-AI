@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { UserProfile, AgendaDetails } from "@/lib/types";
+import { UserProfile, AgendaDetails, UploadedFileItem } from "@/lib/types";
 import { DEFAULT_DEPARTMENTS, DEFAULT_MEETING_TYPES, saveAgendaRecord } from "@/lib/storage";
 import { getGoogleCalendarUrl } from "@/lib/exportUtils";
 import { FeatureHelpAccordion } from "./FeatureHelpAccordion";
@@ -105,11 +105,8 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
   const [topics, setTopics] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
 
-  // 添付資料（写真OCR / テキスト）
-  const [imageBase64, setImageBase64] = useState<string | null>(null);
-  const [imageMimeType, setImageMimeType] = useState<string | null>(null);
-  const [attachmentFileName, setAttachmentFileName] = useState<string | null>(null);
-  const [attachmentText, setAttachmentText] = useState<string>("");
+  // 複数添付資料
+  const [attachmentFiles, setAttachmentFiles] = useState<UploadedFileItem[]>([]);
 
   const [isLoading, setIsLoading] = useState(false);
   const [generatedAgenda, setGeneratedAgenda] = useState<AgendaDetails | null>(null);
@@ -194,6 +191,17 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
     setSavedRecordId(null);
 
     try {
+      // 画像・PDFファイル配列
+      const mediaFiles = attachmentFiles
+        .filter((f) => (f.type === "image" || f.type === "pdf") && f.base64 && f.mimeType)
+        .map((f) => ({ base64: f.base64!, mimeType: f.mimeType!, fileName: f.name }));
+
+      // テキストファイル内容の合算
+      const textFilesContent = attachmentFiles
+        .filter((f) => f.type === "text" && f.textContent)
+        .map((f) => `【資料: ${f.name}】\n${f.textContent}`)
+        .join("\n\n");
+
       const res = await fetch("/api/agenda/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -204,9 +212,8 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
           participants,
           duration: currentDurationLabel,
           topics,
-          imageBase64,
-          imageMimeType,
-          attachmentText,
+          files: mediaFiles,
+          attachmentText: textFilesContent,
         }),
       });
 
@@ -218,10 +225,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
       const data = await res.json();
       setGeneratedAgenda({
         ...data,
-        attachmentFileName: attachmentFileName || undefined,
-        imageBase64: imageBase64 || undefined,
-        imageMimeType: imageMimeType || undefined,
-        attachmentText: attachmentText || undefined,
+        attachments: attachmentFiles,
       });
       showToast("アジェンダを生成しました ✨");
     } catch (err: any) {
@@ -247,10 +251,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
         userTopics: topics,
         agenda: {
           ...generatedAgenda,
-          attachmentFileName: attachmentFileName || undefined,
-          imageBase64: imageBase64 || undefined,
-          imageMimeType: imageMimeType || undefined,
-          attachmentText: attachmentText || undefined,
+          attachments: attachmentFiles,
         },
         createdById: currentUser.id,
       });
@@ -326,8 +327,8 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
               text: "議題テンプレートを選ぶか、話したいメモを入力して「AIアジェンダを生成する」を押すと、目的・達成成果・議題の確認ポイントが自動設計されます。",
             },
             {
-              label: "資料添付",
-              text: "前月の稼働実績や事故報告書、ホワイトボード写真・手書きメモを添付すると、AIが内容を読み込んで具体的な論点をアジェンダに自動反映します。",
+              label: "複数資料添付",
+              text: "前月の稼働実績PDFや複数のホワイトボード写真・手書きメモをまとめて添付可能。AIが全資料を読み込んで具体的な論点をアジェンダに自動反映します。",
             },
             {
               label: "議事録連動",
@@ -567,35 +568,26 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
             ></textarea>
           </div>
 
-          {/* 右：事前資料・写真の添付 */}
+          {/* 右：事前資料・写真の添付（複数対応） */}
           <div className="flex flex-col h-full">
             <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
               <Paperclip className="w-3.5 h-3.5 text-slate-600" />
-              📎 事前資料・写真の添付（ホワイトボード写真、前月報告OCR）
+              📎 事前資料・写真の添付（複数ファイル可・PDF/Word/写真）
             </label>
             <div className="flex-1 flex flex-col">
               <MediaUploader
                 title="事前資料を選択"
                 subtitle="PDF・Word・ホワイトボード写真・企画メモ等 (.pdf, .jpg, .txt)"
                 accept="image/*,application/pdf,.pdf,text/plain,.txt,.md,.csv,.doc,.docx"
-                onFileLoaded={(data) => {
-                  if (data.imageBase64) {
-                    setImageBase64(data.imageBase64);
-                    setImageMimeType(data.imageMimeType || "image/jpeg");
-                    setAttachmentFileName(data.fileName);
-                    showToast(`資料「${data.fileName}」を取り込みました（AIがOCR解析します）✓`);
-                  } else if (data.textContent) {
-                    setAttachmentText((prev) => (prev ? `${prev}\n\n${data.textContent}` : data.textContent!));
-                    setAttachmentFileName(data.fileName);
-                    showToast(`テキスト資料「${data.fileName}」を取り込みました ✓`);
+                allowMultiple={true}
+                initialFiles={attachmentFiles}
+                onFilesChanged={(items) => {
+                  setAttachmentFiles(items);
+                  if (items.length > 0) {
+                    showToast(`${items.length}件の資料をセットしました ✓`);
                   }
                 }}
-                onClear={() => {
-                  setImageBase64(null);
-                  setImageMimeType(null);
-                  setAttachmentFileName(null);
-                  setAttachmentText("");
-                }}
+                onClear={() => setAttachmentFiles([])}
               />
             </div>
           </div>

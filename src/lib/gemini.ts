@@ -34,6 +34,8 @@ export async function generateAgendaAI(params: {
   participants: string;
   duration?: string;
   topics: string;
+  files?: { base64: string; mimeType: string; fileName?: string }[];
+  // 後方互換性
   imageBase64?: string;
   imageMimeType?: string;
   attachmentText?: string;
@@ -60,7 +62,7 @@ export async function generateAgendaAI(params: {
   });
 
   const prompt = `あなたは介護事業所の会議ファシリテーターAIです。
-以下の会議情報、議題メモ、および添付資料（画像・テキスト）をもとに、実務的で進行しやすい会議アジェンダを作成してください。
+以下の会議情報、議題メモ、および添付資料（複数画像・PDF・テキスト等）をもとに、実務的で進行しやすい会議アジェンダを作成してください。
 
 【会議情報】
 - 会議日: ${params.meetingDate || "未定"}
@@ -74,15 +76,29 @@ ${params.topics || "（特記事項なし）"}
 ${params.attachmentText ? `\n【添付資料テキスト】\n${params.attachmentText}` : ""}
 
 【作成方針】
-- 添付された画像資料（ホワイトボード写真、前月報告書、企画案等）やテキスト資料がある場合は、その内容・データを詳細に読み解き、今回の会議で協議・決定すべき論点としてアジェンダに反映してください。
+- 添付されたすべての画像資料（複数枚のホワイトボード写真、前月報告書、企画案等）やPDF資料を余すことなく詳細に読み解き、今回の会議で協議・決定すべき論点としてアジェンダに反映してください。
 - 各議題には「確認すべきポイント」「注意点」「AIからのアドバイス」を追記してください。
 - 介護事業所の運営・業務効率化・スタッフ連携・安全管理・クローバーイズム（組織理念）の観点を盛り込んでください。
 - 【報告】【決定】【議論】等の種別を各議題に付与してください。すべて日本語表記とし、英語表記は使用しないでください。`;
 
   const contents: any[] = [];
 
-  // 画像データ（ホワイトボード写真、手書きメモ、前月レジュメ写真等）
-  if (params.imageBase64 && params.imageMimeType) {
+  // 複数ファイル（画像・PDF）
+  if (params.files && params.files.length > 0) {
+    for (const f of params.files) {
+      if (f.base64 && f.mimeType) {
+        contents.push({
+          inlineData: {
+            data: f.base64,
+            mimeType: f.mimeType,
+          },
+        });
+      }
+    }
+  }
+
+  // 単一ファイル（後方互換）
+  if (params.imageBase64 && params.imageMimeType && (!params.files || params.files.length === 0)) {
     contents.push({
       inlineData: {
         data: params.imageBase64,
@@ -99,7 +115,7 @@ ${params.attachmentText ? `\n【添付資料テキスト】\n${params.attachment
 }
 
 // ==========================================
-// 議事録生成（テキスト＋音声＋画像OCRマルチモーダル対応）
+// 議事録生成（テキスト＋音声＋複数画像/PDF OCRマルチモーダル対応）
 // ==========================================
 export async function generateMinutesAI(params: {
   meetingDate: string;
@@ -110,6 +126,8 @@ export async function generateMinutesAI(params: {
   inputText?: string;
   audioBase64?: string;
   audioMimeType?: string;
+  files?: { base64: string; mimeType: string; fileName?: string }[];
+  // 後方互換性
   imageBase64?: string;
   imageMimeType?: string;
 }) {
@@ -138,7 +156,7 @@ export async function generateMinutesAI(params: {
   });
 
   const prompt = `あなたは介護事業所向けのプロフェッショナル会議ファシリテーターAIです。
-提供された情報（テキストメモ、音声データ、添付画像・ホワイトボード写真等）をもとに、現場スタッフが見やすく実務に直結する【4セクション構成】の明瞭な議事録を作成してください。
+提供された情報（テキストメモ、音声データ、添付された複数枚の画像・ホワイトボード写真・PDF資料等）をもとに、現場スタッフが見やすく実務に直結する【4セクション構成】の明瞭な議事録を作成してください。
 
 【会議情報】
 - 会議日: ${params.meetingDate || "未記載"}
@@ -154,7 +172,7 @@ ${params.inputText || "（テキスト入力なし：添付音声/画像より�
 1. 会議要約（summary）:
    - 会議全体の結論・要点を2〜3文で簡潔にまとめてください。
 2. 議論内容・経緯（discussions）:
-   - 議題ごとに話し合われた内容やスタッフの発言（「氏名：〜」）、検討の経緯を整理してください。
+   - 議題ごとに話し合われた内容やスタッフの発言（「氏名：〜」）、検討の経緯を整理してください。添付されたすべての写真・PDFの文字内容を統合してください。
 3. 決定事項・ToDo（action_plans）:
    - 【担当者】と【期日・時期】を必ず明記し、誰が何をすべきか一目でわかるようにしてください。
 4. 次回検討・特記事項（next_steps）:
@@ -172,8 +190,22 @@ ${params.inputText || "（テキスト入力なし：添付音声/画像より�
     });
   }
 
-  // 画像データ（ホワイトボード写真、手書きメモ、紙レジュメ）
-  if (params.imageBase64 && params.imageMimeType) {
+  // 複数ファイル（画像データ、PDF、ホワイトボード写真等）
+  if (params.files && params.files.length > 0) {
+    for (const f of params.files) {
+      if (f.base64 && f.mimeType) {
+        contents.push({
+          inlineData: {
+            data: f.base64,
+            mimeType: f.mimeType,
+          },
+        });
+      }
+    }
+  }
+
+  // 単一ファイル（後方互換）
+  if (params.imageBase64 && params.imageMimeType && (!params.files || params.files.length === 0)) {
     contents.push({
       inlineData: {
         data: params.imageBase64,

@@ -1,29 +1,33 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect } from "react";
-import { MeetingRecord, UserProfile, MinutesDetails } from "@/lib/types";
-import { DEFAULT_DEPARTMENTS, DEFAULT_MEETING_TYPES, saveMinutesRecord } from "@/lib/storage";
+import { UserProfile, MeetingRecord, MinutesDetails, UploadedFileItem } from "@/lib/types";
+import {
+  DEFAULT_DEPARTMENTS,
+  DEFAULT_MEETING_TYPES,
+  saveMinutesRecord,
+} from "@/lib/storage";
 import { downloadMeetingDocx, getMinutesPlainText, getChatSummaryText, formatJPDate } from "@/lib/exportUtils";
+import { FeatureHelpAccordion } from "./FeatureHelpAccordion";
 import { AudioRecorder } from "./AudioRecorder";
 import { MediaUploader } from "./AudioUploader";
-import { FeatureHelpAccordion } from "./FeatureHelpAccordion";
 import {
   Sparkles,
   Save,
   Download,
   Copy,
   Printer,
+  Calendar,
+  Mic,
+  Image as ImageIcon,
+  CheckCircle2,
+  Share2,
   ArrowRight,
   ArrowLeft,
   Link as LinkIcon,
-  CheckCircle2,
-  ListTodo,
-  MessageSquare,
-  Calendar,
-  Share2,
-  Mic,
-  Image as ImageIcon,
   Sliders,
+  MessageSquare,
+  ListTodo,
 } from "lucide-react";
 
 interface MinutesTabProps {
@@ -64,10 +68,8 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
   const [audioFileName, setAudioFileName] = useState<string | null>(null);
   const [transcriptPreview, setTranscriptPreview] = useState<string>("");
 
-  // Step 3: 資料写真・メモ・AI指示
-  const [imageBase64, setImageBase64] = useState<string | null>(null);
-  const [imageMimeType, setImageMimeType] = useState<string | null>(null);
-  const [imageFileName, setImageFileName] = useState<string | null>(null);
+  // Step 3: 複数資料（写真・PDF・メモ）・AI指示
+  const [attachmentFiles, setAttachmentFiles] = useState<UploadedFileItem[]>([]);
   const [inputText, setInputText] = useState("");
   const [aiFocusInstruction, setAiFocusInstruction] = useState("");
 
@@ -120,11 +122,21 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
       setParticipants(rec.participants);
 
       // アジェンダの添付資料をStep 3へ自動引き継ぎ
-      if (rec.agenda?.imageBase64) {
-        setImageBase64(rec.agenda.imageBase64);
-        setImageMimeType(rec.agenda.imageMimeType || "image/jpeg");
-        setImageFileName(rec.agenda.attachmentFileName || "事前アジェンダ添付資料");
+      if (rec.agenda?.attachments && rec.agenda.attachments.length > 0) {
+        setAttachmentFiles(rec.agenda.attachments);
+      } else if (rec.agenda?.imageBase64) {
+        setAttachmentFiles([
+          {
+            id: "att_legacy",
+            name: rec.agenda.attachmentFileName || "事前アジェンダ添付資料",
+            size: "添付済",
+            type: rec.agenda.imageMimeType === "application/pdf" ? "pdf" : "image",
+            base64: rec.agenda.imageBase64,
+            mimeType: rec.agenda.imageMimeType || "image/jpeg",
+          },
+        ]);
       }
+
       if (rec.agenda?.attachmentText) {
         setInputText((prev) =>
           prev ? `${prev}\n\n${rec.agenda?.attachmentText}` : rec.agenda!.attachmentText!
@@ -145,12 +157,24 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
       const selectedRec = meetingRecords.find((r) => r.id === selectedRecordId);
       const agendaBody = selectedRec?.agenda?.full_text || "";
 
+      // 添付テキストファイルの合算
+      const textFilesContent = attachmentFiles
+        .filter((f) => f.type === "text" && f.textContent)
+        .map((f) => `【資料: ${f.name}】\n${f.textContent}`)
+        .join("\n\n");
+
       // テキストメモと文字起こし、AI指示を統合
       const combinedInputText = [
         transcriptPreview ? `【音声文字起こし/プレビュー】\n${transcriptPreview}` : "",
         inputText ? `【追加メモ・発言内容】\n${inputText}` : "",
+        textFilesContent ? `【添付資料テキスト】\n${textFilesContent}` : "",
         aiFocusInstruction ? `【AIへのフォーカス指示】\n${aiFocusInstruction}` : "",
       ].filter(Boolean).join("\n\n");
+
+      // 添付画像・PDF配列
+      const mediaFiles = attachmentFiles
+        .filter((f) => (f.type === "image" || f.type === "pdf") && f.base64 && f.mimeType)
+        .map((f) => ({ base64: f.base64!, mimeType: f.mimeType!, fileName: f.name }));
 
       const res = await fetch("/api/minutes/generate", {
         method: "POST",
@@ -164,8 +188,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
           inputText: combinedInputText,
           audioBase64,
           audioMimeType,
-          imageBase64,
-          imageMimeType,
+          files: mediaFiles,
         }),
       });
 
@@ -175,7 +198,10 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
       }
 
       const data = await res.json();
-      setMinutesResult(data);
+      setMinutesResult({
+        ...data,
+        attachments: attachmentFiles,
+      });
       setStep(4);
       showToast("議事録を生成しました ✨");
     } catch (err: any) {
@@ -202,7 +228,8 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
       minutes: {
         ...minutesResult,
         inputText,
-        audioFileName: audioFileName || imageFileName || undefined,
+        audioFileName: audioFileName || (attachmentFiles.length > 0 ? `${attachmentFiles.length}件の資料` : undefined),
+        attachments: attachmentFiles,
       },
       createdById: currentUser.id,
       version: selectedRec?.version,
@@ -368,7 +395,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             items={[
               {
                 label: "アジェンダ連動",
-                text: "事前にアジェンダを作成している場合は、ドロップダウンから選択すると日時・部署・種別・議題内容が自動入力され、同一レコードとして紐付け保存されます。",
+                text: "事前にアジェンダを作成している場合は、ドロップダウンから選択すると日時・部署・種別・議題内容・添付資料が自動入力され、同一レコードとして紐付け保存されます。",
               },
               {
                 label: "新規作成",
@@ -549,6 +576,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
                   title="ボイスメモを選択"
                   subtitle="ボイスメモ (.m4a, .mp3, .wav, .aac)"
                   accept="audio/*,.m4a,.mp3,.wav,.aac,.webm"
+                  allowMultiple={false}
                   onFileLoaded={(data) => {
                     if (data.audioBase64) {
                       setAudioBase64(data.audioBase64);
@@ -623,21 +651,21 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
         </div>
       )}
 
-      {/* ── STEP 3: 会議資料（写真・PDF）/ テキストメモの共有と指示 ── */}
+      {/* ── STEP 3: 会議資料（複数写真・PDF）/ テキストメモの共有と指示 ── */}
       {step === 3 && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-5">
           <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
             <ImageIcon className="w-5 h-5 text-slate-700" />
-            ステップ 3: 会議資料（写真・メモ）の共有 ＆ AIへの指示
+            ステップ 3: 会議資料（写真・PDF・メモ）の共有 ＆ AIへの指示
           </h2>
 
           {/* Step 3 説明アコーディオン */}
           <FeatureHelpAccordion
-            title="💡 資料写真OCR解析とAIへのフォーカス指示について"
+            title="💡 資料写真OCR/PDF解析とAIへのフォーカス指示について"
             items={[
               {
-                label: "ホワイトボードOCR",
-                text: "会議室のホワイトボードや紙の配布資料、手書きメモの写真をアップロードすると、AIが画像を文字認識（OCR）して議事録の議論や決定事項に統合します。",
+                label: "複数ファイル対応",
+                text: "ホワイトボード写真（複数枚）、前月実績PDF、配布資料、手書きメモをまとめて添付可能。AIが全資料の文字・図表を文字認識（OCR）して議事録に統合します。",
               },
               {
                 label: "AIフォーカス指示",
@@ -647,32 +675,25 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
-            {/* 写真アップローダー */}
+            {/* 複数写真・PDFアップローダー */}
             <div className="flex flex-col h-full">
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                📷 ホワイトボード写真・手書きメモ・配布資料（OCR/PDF解析）
+                📷 ホワイトボード写真・配布PDF・メモ（複数ファイル可・OCR解析）
               </label>
               <div className="flex-1 flex flex-col">
                 <MediaUploader
                   title="会議資料・写真を選択"
                   subtitle="ホワイトボード写真・配布PDF・メモ (.jpg, .pdf, .txt)"
                   accept="image/*,application/pdf,.pdf,text/plain,.txt,.md,.csv,.doc,.docx"
-                  onFileLoaded={(data) => {
-                    if (data.imageBase64) {
-                      setImageBase64(data.imageBase64);
-                      setImageMimeType(data.imageMimeType || "image/jpeg");
-                      setImageFileName(data.fileName);
-                      showToast(`資料「${data.fileName}」を取り込みました（AIが解析します）✓`);
-                    } else if (data.textContent) {
-                      setInputText((prev) => (prev ? `${prev}\n\n${data.textContent}` : data.textContent!));
-                      showToast("テキストを取り込みました ✓");
+                  allowMultiple={true}
+                  initialFiles={attachmentFiles}
+                  onFilesChanged={(items) => {
+                    setAttachmentFiles(items);
+                    if (items.length > 0) {
+                      showToast(`${items.length}件の資料をセットしました ✓`);
                     }
                   }}
-                  onClear={() => {
-                    setImageBase64(null);
-                    setImageMimeType(null);
-                    setImageFileName(null);
-                  }}
+                  onClear={() => setAttachmentFiles([])}
                 />
               </div>
             </div>
@@ -731,7 +752,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             <button
               type="button"
               onClick={handleGenerate}
-              disabled={isLoading || (!audioBase64 && !transcriptPreview && !inputText && !imageBase64)}
+              disabled={isLoading || (!audioBase64 && !transcriptPreview && !inputText && attachmentFiles.length === 0)}
               className="px-8 py-3 bg-[#283136] hover:bg-[#1c2226] disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-md flex items-center gap-2 transition"
             >
               {isLoading ? (
@@ -899,25 +920,25 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             </button>
             <button
               onClick={handleCopyChatSummary}
-              className="px-3.5 py-2.5 bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs md:text-sm rounded-xl shadow-sm flex items-center gap-1.5 transition"
+              className="px-4 py-2.5 bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs md:text-sm rounded-xl flex items-center gap-2 transition shadow-sm"
             >
               <Share2 className="w-4 h-4" /> LINE WORKS用コピー
             </button>
             <button
               onClick={handleDownloadDocx}
-              className="px-3.5 py-2.5 bg-slate-600 hover:bg-slate-700 text-white font-bold text-xs md:text-sm rounded-xl shadow-sm flex items-center gap-1.5 transition"
+              className="px-4 py-2.5 bg-[#283136] hover:bg-[#1c2226] text-white font-bold text-xs md:text-sm rounded-xl flex items-center gap-2 transition shadow-sm"
             >
               <Download className="w-4 h-4" /> Word保存
             </button>
             <button
               onClick={handleCopyText}
-              className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs md:text-sm rounded-xl flex items-center gap-1.5 transition"
+              className="px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold text-xs md:text-sm rounded-xl flex items-center gap-2 transition"
             >
-              <Copy className="w-4 h-4" /> 全文コピー
+              <Copy className="w-4 h-4" /> テキストをコピー
             </button>
             <button
               onClick={() => window.print()}
-              className="px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-bold text-xs md:text-sm rounded-xl flex items-center gap-1.5 transition"
+              className="px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold text-xs md:text-sm rounded-xl flex items-center gap-2 transition"
             >
               <Printer className="w-4 h-4" /> 印刷
             </button>
