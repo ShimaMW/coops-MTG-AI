@@ -167,7 +167,7 @@ export async function downloadMeetingDocx(item: MeetingRecord): Promise<void> {
       default: {
         document: {
           run: {
-            font: "Meiryo",
+            font: "Noto Sans JP",
             size: 21, // 10.5pt
             color: "283136",
           },
@@ -177,7 +177,7 @@ export async function downloadMeetingDocx(item: MeetingRecord): Promise<void> {
         },
         heading1: {
           run: {
-            font: "Meiryo",
+            font: "Noto Sans JP",
             size: 28, // 14pt
             bold: true,
             color: "283136",
@@ -185,7 +185,7 @@ export async function downloadMeetingDocx(item: MeetingRecord): Promise<void> {
         },
         heading2: {
           run: {
-            font: "Meiryo",
+            font: "Noto Sans JP",
             size: 24, // 12pt
             bold: true,
             color: "353F45",
@@ -193,7 +193,7 @@ export async function downloadMeetingDocx(item: MeetingRecord): Promise<void> {
         },
         title: {
           run: {
-            font: "Meiryo",
+            font: "Noto Sans JP",
             size: 32, // 16pt
             bold: true,
             color: "1C2226",
