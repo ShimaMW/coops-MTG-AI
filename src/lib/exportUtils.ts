@@ -49,78 +49,171 @@ export function getChatSummaryText(item: MeetingRecord): string {
 }
 
 // ==========================================
-// Word (.docx) ファイル生成 & ダウンロード
+// Word (.docx) ファイル生成 & ダウンロード（実例フォーマット準拠）
 // ==========================================
 export async function downloadMeetingDocx(item: MeetingRecord): Promise<void> {
-  const children: Paragraph[] = [
+  const children: Paragraph[] = [];
+
+  // 1. タイトル
+  children.push(
     new Paragraph({
-      text: `COOPs 会議録｜${item.dept} ${item.meetingType}`,
+      text: `📅 ${formatJPDate(item.meetingDate)} ${item.dept} ${item.meetingType} 議事録`,
       heading: HeadingLevel.TITLE,
-      alignment: AlignmentType.CENTER,
-    }),
-    new Paragraph({
-      children: [
-        new TextRun({ text: `開催日：${formatJPDate(item.meetingDate)}　`, bold: true }),
-        new TextRun({ text: `部署：${item.dept}　` }),
-        new TextRun({ text: `種別：${item.meetingType}` }),
-      ],
-      alignment: AlignmentType.CENTER,
-    }),
-    new Paragraph({
-      children: [
-        new TextRun({ text: `参加者：${item.participants || "（未指定）"}` }),
-      ],
-      alignment: AlignmentType.CENTER,
-    }),
-    new Paragraph({ text: "--------------------------------------------------" }),
-  ];
+      spacing: { after: 200 },
+    })
+  );
 
-  // 1. 事前アジェンダセクション
-  if (item.agenda) {
+  // 2. メタ情報（日時・場所・参加者）
+  children.push(
+    new Paragraph({
+      children: [
+        new TextRun({ text: "日時： ", bold: true }),
+        new TextRun({ text: `${formatJPDate(item.meetingDate)} ${item.duration || ""}` }),
+      ],
+      spacing: { after: 80 },
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({ text: "部署・種別： ", bold: true }),
+        new TextRun({ text: `${item.dept} ｜ ${item.meetingType}` }),
+      ],
+      spacing: { after: 80 },
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({ text: "参加者： ", bold: true }),
+        new TextRun({ text: item.participants || "（未指定）" }),
+      ],
+      spacing: { after: 240 },
+    })
+  );
+
+  // テキストを行ごとに分解して適切な段落スタイルで追加するヘルパー
+  const appendFormattedSection = (title: string, content?: string) => {
+    if (!content) return;
+    
+    // セクション大見出し
     children.push(
-      new Paragraph({ text: "【事前アジェンダ】", heading: HeadingLevel.HEADING_1 }),
-      new Paragraph({ text: "■ 目的（Purpose）", heading: HeadingLevel.HEADING_2 }),
-      new Paragraph({ text: item.agenda.purpose || "（未設定）" }),
-      new Paragraph({ text: "■ 達成したい成果（Outcome）", heading: HeadingLevel.HEADING_2 }),
-      new Paragraph({ text: item.agenda.outcome || "（未設定）" })
+      new Paragraph({
+        text: title,
+        heading: HeadingLevel.HEADING_1,
+        spacing: { before: 240, after: 120 },
+      })
     );
 
-    if (item.agenda.review) {
-      children.push(
-        new Paragraph({ text: "■ 前回の振り返り", heading: HeadingLevel.HEADING_2 }),
-        new Paragraph({ text: item.agenda.review })
-      );
+    const lines = content.split("\n");
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line) {
+        children.push(new Paragraph({ text: "", spacing: { after: 60 } }));
+        continue;
+      }
+
+      // 中見出し（例: "1. 【議題1】...", "✨ 直ちに取り組む...", "🤖 Gemini...", "① ...", "■ ...", "第1位: ..."）
+      if (
+        /^(?:[0-9]+\.\s*【|✨|🤖|①|②|③|④|⑤|■|🔎|📌|🎉)/.test(line)
+      ) {
+        children.push(
+          new Paragraph({
+            children: [new TextRun({ text: line, bold: true })],
+            spacing: { before: 140, after: 60 },
+          })
+        );
+      } else if (/^・/.test(line)) {
+        // リスト項目
+        children.push(
+          new Paragraph({
+            text: line,
+            indent: { left: 360 },
+            spacing: { after: 40 },
+          })
+        );
+      } else {
+        // 通常段落
+        children.push(
+          new Paragraph({
+            text: line,
+            spacing: { after: 60 },
+          })
+        );
+      }
     }
+  };
 
-    children.push(
-      new Paragraph({ text: "■ 各議題（AIアドバイス含む）", heading: HeadingLevel.HEADING_2 }),
-      new Paragraph({ text: item.agenda.agenda_items || "（未設定）" }),
-      new Paragraph({ text: "■ クロージング", heading: HeadingLevel.HEADING_2 }),
-      new Paragraph({ text: item.agenda.closing || "（未設定）" }),
-      new Paragraph({ text: "--------------------------------------------------" })
-    );
+  // 3. 事前アジェンダ（存在する場合）
+  if (item.agenda) {
+    appendFormattedSection("📋 事前アジェンダ", [
+      `【目的】\n${item.agenda.purpose || ""}`,
+      `【達成成果】\n${item.agenda.outcome || ""}`,
+      item.agenda.review ? `【前回の振り返り】\n${item.agenda.review}` : "",
+      `【各議題】\n${item.agenda.agenda_items || ""}`,
+      `【クロージング】\n${item.agenda.closing || ""}`,
+    ].filter(Boolean).join("\n\n"));
   }
 
-  // 2. 議事録セクション（4セクション）
+  // 4. 議事録セクション（4セクション）
   if (item.minutes) {
     const discText = item.minutes.discussions || [item.minutes.agenda_items, item.minutes.key_discussions].filter(Boolean).join("\n\n");
     const nextText = item.minutes.next_steps || [item.minutes.culture_notes, item.minutes.next_agenda, item.minutes.facilitator_feedback].filter(Boolean).join("\n\n");
 
-    children.push(
-      new Paragraph({ text: "【会議議事録】", heading: HeadingLevel.HEADING_1 }),
-      new Paragraph({ text: "■ 1. 会議要約", heading: HeadingLevel.HEADING_2 }),
-      new Paragraph({ text: item.minutes.summary || "（記載なし）" }),
-      new Paragraph({ text: "■ 2. 議論内容・経緯", heading: HeadingLevel.HEADING_2 }),
-      new Paragraph({ text: discText || "（記載なし）" }),
-      new Paragraph({ text: "■ 3. 決定事項・ToDo（担当・期日）", heading: HeadingLevel.HEADING_2 }),
-      new Paragraph({ text: item.minutes.action_plans || "（記載なし）" }),
-      new Paragraph({ text: "■ 4. 次回検討・特記事項", heading: HeadingLevel.HEADING_2 }),
-      new Paragraph({ text: nextText || "（記載なし）" })
-    );
+    appendFormattedSection("📌 1. 会議要約・前提", item.minutes.summary);
+    appendFormattedSection("💡 2. 議論内容・経緯（各議題ごとの発言・流れ）", discText);
+    appendFormattedSection("✨ 3. 決定事項・アクションプラン（担当・期日）", item.minutes.action_plans);
+    appendFormattedSection("📅 4. 次回検討・特記事項 ＆ AIファシリテーターレビュー", nextText);
   }
 
   const doc = new Document({
-    sections: [{ properties: {}, children }],
+    styles: {
+      default: {
+        document: {
+          run: {
+            font: "Meiryo",
+            size: 21, // 10.5pt
+            color: "283136",
+          },
+          paragraph: {
+            spacing: { line: 276 }, // 1.15倍行間
+          },
+        },
+        heading1: {
+          run: {
+            font: "Meiryo",
+            size: 28, // 14pt
+            bold: true,
+            color: "283136",
+          },
+        },
+        heading2: {
+          run: {
+            font: "Meiryo",
+            size: 24, // 12pt
+            bold: true,
+            color: "353F45",
+          },
+        },
+        title: {
+          run: {
+            font: "Meiryo",
+            size: 32, // 16pt
+            bold: true,
+            color: "1C2226",
+          },
+        },
+      },
+    },
+    sections: [{
+      properties: {
+        page: {
+          margin: {
+            top: 1440, // 25.4mm
+            right: 1440,
+            bottom: 1440,
+            left: 1440,
+          },
+        },
+      },
+      children,
+    }],
   });
 
   const blob = await Packer.toBlob(doc);
