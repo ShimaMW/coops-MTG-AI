@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { BIZ_UDGothic } from "next/font/google";
+import { Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
 
-const bizUDGothic = BIZ_UDGothic({
+const notoSansJP = Noto_Sans_JP({
   subsets: ["latin"],
-  weight: ["400", "700"],
+  weight: ["400", "500", "700"],
   display: "swap",
 });
 
@@ -19,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja" className={bizUDGothic.className}>
+    <html lang="ja" className={notoSansJP.className}>
       <body className="antialiased font-sans">{children}</body>
     </html>
   );
