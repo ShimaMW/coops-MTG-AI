@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
@@ -34,10 +34,31 @@ export default function Home() {
   };
 
   useEffect(() => {
-    const u = getCurrentUser();
-    setCurrentUser(u);
     const depts = getDepartments();
     setDepartments(depts);
+
+    // URLパラメータから事業所（?dept=福禄寿 等）を取得して自動設定
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const paramDept = urlParams.get("dept");
+      if (paramDept && (depts.includes(paramDept) || paramDept === "総務・管理本部")) {
+        const customUser: UserProfile = {
+          id: `u_${paramDept}`,
+          email: `${paramDept}@coops.care`,
+          name: `${paramDept} 担当`,
+          department: paramDept,
+          role: "staff",
+        };
+        setCurrentUser(customUser);
+        saveCurrentUser(customUser);
+      } else {
+        const u = getCurrentUser();
+        setCurrentUser(u);
+      }
+    } else {
+      const u = getCurrentUser();
+      setCurrentUser(u);
+    }
 
     // リアルタイム同期リスナーの登録
     const unsubscribe = subscribeMeetingRecords((records) => {
