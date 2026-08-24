@@ -11,6 +11,7 @@ import {
   getCurrentUser,
   saveCurrentUser,
   getMeetingRecords,
+  subscribeMeetingRecords,
 } from "@/lib/storage";
 import { UserProfile, MeetingRecord } from "@/lib/types";
 
@@ -23,13 +24,21 @@ export default function Home() {
 
   const reloadData = () => {
     const u = getCurrentUser();
-    const records = getMeetingRecords();
     setCurrentUser(u);
+    const records = getMeetingRecords();
     setMeetingRecords(records);
   };
 
   useEffect(() => {
-    reloadData();
+    const u = getCurrentUser();
+    setCurrentUser(u);
+
+    // リアルタイム同期リスナーの登録
+    const unsubscribe = subscribeMeetingRecords((records) => {
+      setMeetingRecords(records);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const showToast = (message: string, type: "success" | "error" = "success") => {

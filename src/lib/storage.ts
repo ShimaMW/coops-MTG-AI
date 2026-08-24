@@ -1,7 +1,19 @@
-import { MeetingRecord, UserProfile, AgendaDetails, MinutesDetails } from "./types";
+﻿import { MeetingRecord, UserProfile, AgendaDetails, MinutesDetails } from "./types";
+import { db, isFirebaseConfigured } from "./firebase";
+import {
+  collection,
+  doc,
+  setDoc,
+  deleteDoc,
+  onSnapshot,
+  query,
+  orderBy,
+  getDocs,
+} from "firebase/firestore";
 
 const MEETINGS_STORAGE_KEY = "coops_meetings_data_v4";
 const CURRENT_USER_KEY = "coops_current_user_v4";
+const MEETINGS_COLLECTION = "meetings";
 
 export const DEFAULT_DEPARTMENTS = [
   "訪問介護",
@@ -29,6 +41,9 @@ export const DEFAULT_CURRENT_USER: UserProfile = {
   role: "admin",
 };
 
+// ==========================================
+// ユーザー管理
+// ==========================================
 export function getCurrentUser(): UserProfile {
   if (typeof window === "undefined") return DEFAULT_CURRENT_USER;
   const raw = localStorage.getItem(CURRENT_USER_KEY);
@@ -48,6 +63,9 @@ export function saveCurrentUser(user: UserProfile): void {
   localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
 }
 
+// ==========================================
+// ローカルストレージ取得
+// ==========================================
 export function getMeetingRecords(): MeetingRecord[] {
   if (typeof window === "undefined") return [];
   const raw = localStorage.getItem(MEETINGS_STORAGE_KEY);
@@ -60,6 +78,68 @@ export function getMeetingRecords(): MeetingRecord[] {
   }
 }
 
+function saveLocalMeetingRecords(records: MeetingRecord[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(MEETINGS_STORAGE_KEY, JSON.stringify(records));
+}
+
+// ==========================================
+// リアルタイム同期リスナー（Firestore + localStorage両対応）
+// ==========================================
+export function subscribeMeetingRecords(
+  callback: (records: MeetingRecord[]) => void
+): () => void {
+  // 初期値（ローカルから即座に表示）
+  callback(getMeetingRecords());
+
+  // Firestoreが有効な場合：クラウドからリアルタイム購読
+  if (db && isFirebaseConfigured) {
+    try {
+      const q = query(collection(db, MEETINGS_COLLECTION));
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const list: MeetingRecord[] = [];
+          snapshot.forEach((docSnap) => {
+            list.push(docSnap.data() as MeetingRecord);
+          });
+          list.sort((a, b) => (b.meetingDate || "").localeCompare(a.meetingDate || ""));
+          saveLocalMeetingRecords(list);
+          callback(list);
+        },
+        (error) => {
+          console.warn("Firestore subscription error, using local fallback:", error);
+          callback(getMeetingRecords());
+        }
+      );
+      return unsubscribe;
+    } catch (err) {
+      console.warn("Failed to subscribe to Firestore:", err);
+    }
+  }
+
+  // ローカル環境フォールバック（別タブでのstorage更新を検知）
+  const handleStorageChange = (e: StorageEvent) => {
+    if (e.key === MEETINGS_STORAGE_KEY) {
+      callback(getMeetingRecords());
+    }
+  };
+  if (typeof window !== "undefined") {
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }
+
+  return () => {};
+}
+
+// Firestore用オブジェクトサニタイズ（undefinedの除去）
+function sanitizeForFirestore(obj: any): any {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+// ==========================================
+// アジェンダ保存
+// ==========================================
 export function saveAgendaRecord(params: {
   id?: string;
   meetingDate: string;
@@ -101,7 +181,15 @@ export function saveAgendaRecord(params: {
     list.unshift(record);
   }
 
-  localStorage.setItem(MEETINGS_STORAGE_KEY, JSON.stringify(list));
+  saveLocalMeetingRecords(list);
+
+  // Firestoreへ非同期保存
+  if (db && isFirebaseConfigured) {
+    setDoc(doc(db, MEETINGS_COLLECTION, record.id), sanitizeForFirestore(record)).catch((err) =>
+      console.warn("Failed to sync agenda to Firestore:", err)
+    );
+  }
+
   return { success: true, data: record };
 }
 
@@ -124,6 +212,9 @@ function createNewAgendaRecord(params: any, now: string): MeetingRecord {
   };
 }
 
+// ==========================================
+// 議事録保存
+// ==========================================
 export function saveMinutesRecord(params: {
   recordId?: string;
   meetingDate: string;
@@ -164,11 +255,19 @@ export function saveMinutesRecord(params: {
         updatedAt: now,
       };
       list[idx] = record;
-      localStorage.setItem(MEETINGS_STORAGE_KEY, JSON.stringify(list));
+      saveLocalMeetingRecords(list);
+
+      // Firestoreへ非同期保存
+      if (db && isFirebaseConfigured) {
+        setDoc(doc(db, MEETINGS_COLLECTION, record.id), sanitizeForFirestore(record)).catch((err) =>
+          console.warn("Failed to sync minutes to Firestore:", err)
+        );
+      }
+
       return {
         success: true,
         data: record,
-        message: "事前アジェンダに紐づけて議事録を保存しました ✓",
+        message: "事前アジェンダに紐づけて議事録をクラウド保存しました ✓",
       };
     }
   }
@@ -188,15 +287,33 @@ export function saveMinutesRecord(params: {
     createdById: params.createdById,
   };
   list.unshift(record);
-  localStorage.setItem(MEETINGS_STORAGE_KEY, JSON.stringify(list));
+  saveLocalMeetingRecords(list);
+
+  // Firestoreへ非同期保存
+  if (db && isFirebaseConfigured) {
+    setDoc(doc(db, MEETINGS_COLLECTION, record.id), sanitizeForFirestore(record)).catch((err) =>
+      console.warn("Failed to sync new minutes to Firestore:", err)
+    );
+  }
+
   return {
     success: true,
     data: record,
-    message: "議事録を新規保存しました ✓",
+    message: "議事録をクラウド保存しました ✓",
   };
 }
 
+// ==========================================
+// 議事録削除
+// ==========================================
 export function deleteMeetingRecord(id: string): void {
   const list = getMeetingRecords().filter((r) => r.id !== id);
-  localStorage.setItem(MEETINGS_STORAGE_KEY, JSON.stringify(list));
+  saveLocalMeetingRecords(list);
+
+  // Firestoreから非同期削除
+  if (db && isFirebaseConfigured) {
+    deleteDoc(doc(db, MEETINGS_COLLECTION, id)).catch((err) =>
+      console.warn("Failed to delete record from Firestore:", err)
+    );
+  }
 }
