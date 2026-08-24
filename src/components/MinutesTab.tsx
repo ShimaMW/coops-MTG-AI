@@ -166,7 +166,17 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
 
     try {
       const selectedRec = meetingRecords.find((r) => r.id === selectedRecordId);
-      const agendaBody = selectedRec?.agenda?.full_text || "";
+      const agendaBody = selectedRec?.agenda
+        ? [
+            `【目的】\n${selectedRec.agenda.purpose || ""}`,
+            `【達成したい成果】\n${selectedRec.agenda.outcome || ""}`,
+            selectedRec.agenda.review ? `【前回の振り返り】\n${selectedRec.agenda.review}` : "",
+            `【設定アジェンダ・各議題】\n${selectedRec.agenda.agenda_items || ""}`,
+            selectedRec.agenda.closing ? `【クロージング】\n${selectedRec.agenda.closing}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n\n")
+        : "";
 
       // 添付テキストファイルの合算
       const textFilesContent = attachmentFiles
