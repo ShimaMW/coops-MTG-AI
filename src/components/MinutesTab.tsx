@@ -11,6 +11,7 @@ import { downloadMeetingDocx, getMinutesPlainText, getChatSummaryText, formatJPD
 import { FeatureHelpAccordion } from "./FeatureHelpAccordion";
 import { AudioRecorder } from "./AudioRecorder";
 import { MediaUploader } from "./AudioUploader";
+import { generateMinutesAIClientSide } from "@/lib/geminiClient";
 import {
   Sparkles,
   Save,
@@ -177,40 +178,58 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
         .filter((f) => (f.type === "image" || f.type === "pdf") && f.base64 && f.mimeType)
         .map((f) => ({ base64: f.base64!, mimeType: f.mimeType!, fileName: f.name }));
 
-      const res = await fetch("/api/minutes/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      let data: any = null;
+
+      // 1. クライアント側直接Gemini呼び出し（Vercel 4.5MB制限を完全回避）
+      try {
+        data = await generateMinutesAIClientSide({
           meetingDate,
           dept,
           meetingType: effectiveMeetingType,
           participants,
           agendaBody,
           inputText: combinedInputText,
-          audioBase64,
-          audioMimeType,
-          audioFileUri,
+          audioBase64: audioBase64 || undefined,
+          audioMimeType: audioMimeType || undefined,
           files: mediaFiles,
-        }),
-      });
+        });
+      } catch (clientErr: any) {
+        console.warn("Client direct call fallback to API:", clientErr);
 
-      if (!res.ok) {
-        const resText = await res.text();
-        let errorMsg = "議事録の生成に失敗しました";
-        try {
-          const errObj = JSON.parse(resText);
-          errorMsg = errObj.error || errorMsg;
-        } catch {
-          if (res.status === 413 || resText.includes("Request Entity") || resText.includes("Payload Too Large")) {
-            errorMsg = "送信データ（音声・画像）のサイズが通信上限（約4.5MB）を超えています。短い録音にするか、文字起こし・メモをご活用ください。";
-          } else if (resText) {
-            errorMsg = resText.slice(0, 120);
+        // 2. サーバーAPIルートへのフォールバック
+        const res = await fetch("/api/minutes/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            meetingDate,
+            dept,
+            meetingType: effectiveMeetingType,
+            participants,
+            agendaBody,
+            inputText: combinedInputText,
+            audioBase64,
+            audioMimeType,
+            files: mediaFiles,
+          }),
+        });
+
+        if (!res.ok) {
+          const resText = await res.text();
+          let errorMsg = clientErr.message || "議事録の生成に失敗しました";
+          try {
+            const errObj = JSON.parse(resText);
+            errorMsg = errObj.error || errorMsg;
+          } catch {
+            if (res.status === 413 || resText.includes("Request Entity") || resText.includes("Payload Too Large")) {
+              errorMsg = "送信データが通信上限を超えています。ブラウザからの直接解析エラー: " + (clientErr.message || "");
+            }
           }
+          throw new Error(errorMsg);
         }
-        throw new Error(errorMsg);
+
+        data = await res.json();
       }
 
-      const data = await res.json();
       setMinutesResult({
         ...data,
         attachments: attachmentFiles,
