@@ -16,6 +16,7 @@ import {
   getAgendaPlainText,
   getChatSummaryText,
   formatJPDate,
+  formatSlashDate,
   formatAgendaItemsText,
   getGoogleCalendarUrl,
 } from "@/lib/exportUtils";
@@ -72,12 +73,22 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
 
   // 編集モード管理
   const [isEditing, setIsEditing] = useState(false);
+  const [editMeetingDate, setEditMeetingDate] = useState("");
+  const [editDept, setEditDept] = useState("");
+  const [editMeetingType, setEditMeetingType] = useState("");
+  const [editCustomMeetingType, setEditCustomMeetingType] = useState("");
   const [editParticipants, setEditParticipants] = useState("");
   const [editMinutes, setEditMinutes] = useState<MinutesDetails | null>(null);
   const [editAgenda, setEditAgenda] = useState<AgendaDetails | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const isAdmin = currentUser.role === "admin";
+
+  const handleDatePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.value) {
+      setEditMeetingDate(formatSlashDate(e.target.value));
+    }
+  };
 
   // 絞り込みフィルター（全スタッフが全部署の公開ログをオープンに参照可能）
   const filteredRecords = meetingRecords.filter((rec) => {
@@ -117,6 +128,11 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
     setModalTab(tab);
     setIsFullScreen(false);
     setIsEditing(false);
+    const isKnownType = DEFAULT_MEETING_TYPES.includes(rec.meetingType);
+    setEditMeetingDate(formatSlashDate(rec.meetingDate));
+    setEditDept(rec.dept);
+    setEditMeetingType(isKnownType ? rec.meetingType : "その他");
+    setEditCustomMeetingType(isKnownType ? "" : rec.meetingType);
     setEditParticipants(rec.participants || "");
     setEditMinutes(rec.minutes ? { ...rec.minutes } : null);
     setEditAgenda(
@@ -136,6 +152,11 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
       const latestList = await syncFromGSS();
       const latest = latestList.find((r) => r.id === selectedRecord.id) || selectedRecord;
       setSelectedRecord(latest);
+      const isKnownType = DEFAULT_MEETING_TYPES.includes(latest.meetingType);
+      setEditMeetingDate(formatSlashDate(latest.meetingDate));
+      setEditDept(latest.dept);
+      setEditMeetingType(isKnownType ? latest.meetingType : "その他");
+      setEditCustomMeetingType(isKnownType ? "" : latest.meetingType);
       setEditParticipants(latest.participants || "");
       setEditMinutes(latest.minutes ? { ...latest.minutes } : null);
       setEditAgenda(
@@ -156,6 +177,11 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
 
   const handleCancelEdit = () => {
     if (!selectedRecord) return;
+    const isKnownType = DEFAULT_MEETING_TYPES.includes(selectedRecord.meetingType);
+    setEditMeetingDate(formatSlashDate(selectedRecord.meetingDate));
+    setEditDept(selectedRecord.dept);
+    setEditMeetingType(isKnownType ? selectedRecord.meetingType : "その他");
+    setEditCustomMeetingType(isKnownType ? "" : selectedRecord.meetingType);
     setEditParticipants(selectedRecord.participants || "");
     setEditMinutes(selectedRecord.minutes ? { ...selectedRecord.minutes } : null);
     setEditAgenda(
@@ -173,13 +199,18 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
     if (!selectedRecord) return;
     setIsSaving(true);
 
+    const finalMeetingType =
+      editMeetingType === "その他" && editCustomMeetingType.trim()
+        ? editCustomMeetingType.trim()
+        : editMeetingType;
+
     try {
       if (modalTab === "minutes" && editMinutes) {
         const res = saveMinutesRecord({
           recordId: selectedRecord.id,
-          meetingDate: selectedRecord.meetingDate,
-          dept: selectedRecord.dept,
-          meetingType: selectedRecord.meetingType,
+          meetingDate: editMeetingDate,
+          dept: editDept,
+          meetingType: finalMeetingType,
           participants: editParticipants,
           minutes: editMinutes,
           createdById: selectedRecord.createdById,
@@ -197,9 +228,9 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
       } else if (modalTab === "agenda" && editAgenda) {
         const res = saveAgendaRecord({
           id: selectedRecord.id,
-          meetingDate: selectedRecord.meetingDate,
-          dept: selectedRecord.dept,
-          meetingType: selectedRecord.meetingType,
+          meetingDate: editMeetingDate,
+          dept: editDept,
+          meetingType: finalMeetingType,
           participants: editParticipants,
           duration: selectedRecord.duration,
           userTopics: selectedRecord.userTopics,
@@ -441,25 +472,22 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                         編集中
                       </span>
                     )}
-                    <span className="text-xs sm:text-sm font-normal text-slate-300">
-                      ｜ {selectedRecord.dept} {selectedRecord.meetingType}
-                    </span>
+                    {!isEditing && (
+                      <span className="text-xs sm:text-sm font-normal text-slate-300">
+                        ｜ {selectedRecord.dept} {selectedRecord.meetingType}
+                      </span>
+                    )}
                   </h3>
-                  <div className="text-xs text-slate-300 mt-0.5 flex items-center gap-3">
-                    <span>📅 開催日: {formatJPDate(selectedRecord.meetingDate)}</span>
+                  <div className="text-xs text-slate-300 mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1">
                     {!isEditing ? (
-                      <span>👥 参加者: {selectedRecord.participants || "未指定"}</span>
+                      <>
+                        <span>📅 開催日: {formatJPDate(selectedRecord.meetingDate)}</span>
+                        <span>👥 参加者: {selectedRecord.participants || "未指定"}</span>
+                      </>
                     ) : (
-                      <div className="flex items-center gap-1">
-                        <span>👥 参加者:</span>
-                        <input
-                          type="text"
-                          value={editParticipants}
-                          onChange={(e) => setEditParticipants(e.target.value)}
-                          className="bg-white/20 border border-white/30 rounded px-2 py-0.5 text-xs sm:text-sm text-white outline-none focus:bg-white/30"
-                          placeholder="参加者名"
-                        />
-                      </div>
+                      <span className="text-amber-200">
+                        ※下記の基本情報（開催日・部署・種別・参加者）や本文の内容を変更できます
+                      </span>
                     )}
                   </div>
                 </div>
@@ -524,6 +552,98 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
 
             {/* モーダル本文（閲覧 / 編集モード） */}
             <div className="p-6 overflow-y-auto space-y-4 text-sm sm:text-base leading-relaxed text-slate-800 bg-white">
+              {/* ── 基本情報の編集フォーム（開催日・部署・会議種別・参加者） ── */}
+              {isEditing && (
+                <div className="p-4 bg-[#eef2f6] border border-slate-300 rounded-xl space-y-3">
+                  <div className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-1.5 pb-2 border-b border-slate-300">
+                    <Calendar className="w-4 h-4 text-slate-700" />
+                    🛠️ 会議基本情報の編集
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {/* 開催日 */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">📅 開催日</label>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          value={editMeetingDate}
+                          onChange={(e) => setEditMeetingDate(e.target.value)}
+                          className="flex-1 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm outline-none focus:border-slate-600"
+                          placeholder="2026/8/24"
+                        />
+                        <div className="relative">
+                          <input
+                            type="date"
+                            onChange={handleDatePickerChange}
+                            className="w-8 h-8 opacity-0 absolute inset-0 cursor-pointer z-10"
+                            title="カレンダーから選択"
+                          />
+                          <button
+                            type="button"
+                            className="w-8 h-8 bg-white hover:bg-slate-100 text-slate-700 rounded-lg flex items-center justify-center border border-slate-300"
+                          >
+                            <Calendar className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 部署・事業所 */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">🏢 部署・事業所</label>
+                      <select
+                        value={editDept}
+                        onChange={(e) => setEditDept(e.target.value)}
+                        className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm outline-none focus:border-slate-600 font-medium"
+                      >
+                        {departments.map((d) => (
+                          <option key={d} value={d}>
+                            {d}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* 会議種別 */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">📋 会議種別</label>
+                      <select
+                        value={editMeetingType}
+                        onChange={(e) => setEditMeetingType(e.target.value)}
+                        className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm outline-none focus:border-slate-600 font-medium"
+                      >
+                        {DEFAULT_MEETING_TYPES.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                      {editMeetingType === "その他" && (
+                        <input
+                          type="text"
+                          value={editCustomMeetingType}
+                          onChange={(e) => setEditCustomMeetingType(e.target.value)}
+                          className="w-full mt-1 bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs outline-none focus:border-slate-600"
+                          placeholder="会議種別名を入力"
+                        />
+                      )}
+                    </div>
+
+                    {/* 参加者 */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">👥 参加者</label>
+                      <input
+                        type="text"
+                        value={editParticipants}
+                        onChange={(e) => setEditParticipants(e.target.value)}
+                        className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm outline-none focus:border-slate-600"
+                        placeholder="例：佐藤、田中、高橋"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
               {modalTab === "minutes" && (selectedRecord.minutes || editMinutes) && (
                 <div className="space-y-4">
                   {/* 1. 会議要約 */}
