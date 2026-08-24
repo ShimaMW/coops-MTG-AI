@@ -467,9 +467,10 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
       </div>
 
       {/* ── STEP 1: 会議基本情報 ── */}
+      {/* ── STEP 1: 会議基本情報 ── */}
       {step === 1 && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
-          <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+          <h2 className="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
             <Calendar className="w-5 h-5 text-slate-700" />
             ステップ 1: 会議基本情報
           </h2>
@@ -492,14 +493,14 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
           {/* 事前アジェンダ連携 */}
           {agendaRecords.length > 0 && (
             <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
-              <label className="block text-xs font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
-                <LinkIcon className="w-3.5 h-3.5 text-slate-600" />
+              <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                <LinkIcon className="w-4 h-4 text-slate-600" />
                 事前アジェンダから呼び起こす（紐付け保存されます）
               </label>
               <select
                 value={selectedRecordId}
                 onChange={(e) => handleSelectRecord(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20"
+                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs sm:text-sm outline-none focus:ring-2 focus:ring-slate-500/20"
               >
                 <option value="">― アジェンダを選択（新規の場合は未選択） ―</option>
                 {agendaRecords.map((a) => (
@@ -515,20 +516,20 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* 日付入力 */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+              <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5 flex items-center justify-between">
                 <span>📅 会議日</span>
                 <div className="flex gap-1">
                   <button
                     type="button"
                     onClick={() => setQuickDate(-1)}
-                    className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-[10px]"
+                    className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-xs font-medium"
                   >
                     昨日
                   </button>
                   <button
                     type="button"
                     onClick={() => setQuickDate(0)}
-                    className="px-1.5 py-0.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded text-[10px]"
+                    className="px-2 py-0.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded text-xs"
                   >
                     今日
                   </button>
@@ -539,7 +540,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
                   type="text"
                   value={meetingDate}
                   onChange={(e) => setMeetingDate(e.target.value)}
-                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition"
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm sm:text-base outline-none focus:border-slate-600 focus:bg-white transition"
                 />
                 <div className="relative">
                   <input
@@ -559,11 +560,11 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">🏢 部署・事業所</label>
+              <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">🏢 部署・事業所</label>
               <select
                 value={dept}
                 onChange={(e) => setDept(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm sm:text-base outline-none focus:border-slate-600 focus:bg-white transition"
               >
                 {departments.map((d) => (
                   <option key={d} value={d}>
@@ -576,11 +577,11 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">📋 会議種別</label>
+              <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">📋 会議種別</label>
               <select
                 value={meetingType}
                 onChange={(e) => setMeetingType(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm sm:text-base outline-none focus:border-slate-600 focus:bg-white transition"
               >
                 {DEFAULT_MEETING_TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -594,19 +595,19 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
                   placeholder="会議種別名を入力"
                   value={customMeetingType}
                   onChange={(e) => setCustomMeetingType(e.target.value)}
-                  className="w-full mt-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-slate-600 focus:bg-white transition"
+                  className="w-full mt-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-slate-600 focus:bg-white transition"
                 />
               )}
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">👥 参加者</label>
+              <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">👥 参加者</label>
               <input
                 type="text"
                 placeholder="例：佐藤、田中、高橋、渡辺"
                 value={participants}
                 onChange={(e) => setParticipants(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm sm:text-base outline-none focus:border-slate-600 focus:bg-white transition"
               />
             </div>
           </div>
@@ -615,7 +616,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             <button
               type="button"
               onClick={() => setStep(2)}
-              className="px-6 py-2.5 bg-[#283136] hover:bg-[#1c2226] text-white font-bold text-sm rounded-xl shadow-md flex items-center gap-2 transition"
+              className="px-6 py-2.5 bg-[#283136] hover:bg-[#1c2226] text-white font-bold text-xs sm:text-sm rounded-xl shadow-md flex items-center gap-2 transition"
             >
               次へ：音声・文字起こし <ArrowRight className="w-4 h-4" />
             </button>
@@ -626,7 +627,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
       {/* ── STEP 2: 音声データの提出 / 録音 ➔ 文字起こし ── */}
       {step === 2 && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-5">
-          <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+          <h2 className="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
             <Mic className="w-5 h-5 text-slate-700" />
             ステップ 2: 会議音声・メモの入力
           </h2>
@@ -653,7 +654,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
           {/* 左右均等グリッド */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
             <div className="flex flex-col h-full">
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+              <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">
                 📱 ボイスメモ・録音ファイル
               </label>
               <div className="flex-1 flex flex-col">
@@ -696,7 +697,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             </div>
 
             <div className="flex flex-col h-full">
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+              <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">
                 🎙️ マイクで直接録音
               </label>
               <div className="flex-1 flex flex-col">
@@ -728,16 +729,16 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
 
           {/* 文字起こしプレビュー & 手動メモエリア */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+            <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5 flex items-center justify-between">
               <span>📝 文字起こし・メモ</span>
-              <span className="text-[11px] text-slate-400 font-normal">自由に加筆・修正できます</span>
+              <span className="text-xs text-slate-400 font-normal">自由に加筆・修正できます</span>
             </label>
             <textarea
               rows={5}
               placeholder="録音データの文字起こし結果がここに表示されます。音声ファイルがない場合は、会議の要点やメモを直接入力してください。"
               value={transcriptPreview}
               onChange={(e) => setTranscriptPreview(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition leading-relaxed font-mono"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm sm:text-base outline-none focus:border-slate-600 focus:bg-white transition leading-relaxed font-mono"
             ></textarea>
           </div>
 
@@ -745,7 +746,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             <button
               type="button"
               onClick={() => setStep(1)}
-              className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl flex items-center gap-2 transition"
+              className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm rounded-xl flex items-center gap-2 transition"
             >
               <ArrowLeft className="w-4 h-4" /> 戻る
             </button>
@@ -753,7 +754,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             <button
               type="button"
               onClick={() => setStep(3)}
-              className="px-6 py-2.5 bg-[#283136] hover:bg-[#1c2226] text-white font-bold text-sm rounded-xl shadow-md flex items-center gap-2 transition"
+              className="px-6 py-2.5 bg-[#283136] hover:bg-[#1c2226] text-white font-bold text-xs sm:text-sm rounded-xl shadow-md flex items-center gap-2 transition"
             >
               次へ：資料添付・指示 <ArrowRight className="w-4 h-4" />
             </button>
@@ -764,7 +765,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
       {/* ── STEP 3: 会議資料（複数写真・PDF）/ テキストメモの共有と指示 ── */}
       {step === 3 && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-5">
-          <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+          <h2 className="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
             <ImageIcon className="w-5 h-5 text-slate-700" />
             ステップ 3: 会議資料の共有 ＆ 指示
           </h2>
@@ -787,7 +788,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
             {/* 追加テキストメモ（8カラム、広々確保） */}
             <div className="lg:col-span-8 flex flex-col h-full space-y-1.5">
-              <label className="block text-xs font-bold text-slate-800">
+              <label className="block text-xs sm:text-sm font-bold text-slate-800">
                 📝 追加テキストメモ・補足発言
               </label>
               <textarea
@@ -795,13 +796,13 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
                 placeholder="会議の補足事項や、写真に関するメモ、重要発言があれば自由に入力してください。"
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                className="w-full flex-1 min-h-[240px] bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition leading-relaxed resize-y"
+                className="w-full flex-1 min-h-[240px] bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm sm:text-base outline-none focus:border-slate-600 focus:bg-white transition leading-relaxed resize-y"
               ></textarea>
             </div>
 
             {/* 複数写真・PDFアップローダー（4カラム、コンパクト表示） */}
             <div className="lg:col-span-4 flex flex-col h-full space-y-1.5">
-              <label className="block text-xs font-bold text-slate-700">
+              <label className="block text-xs sm:text-sm font-bold text-slate-700">
                 📷 会議資料・写真・PDF（任意）
               </label>
               <div className="flex-1 flex flex-col min-h-[240px]">
@@ -826,7 +827,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
           {/* AIへの指示（カテゴリ別複数トグル選択 ＋ 自由メモ） */}
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <label className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
                 <Sliders className="w-4 h-4 text-slate-700" />
                 🎯 AIへのフォーカス指示・まとめ方（複数選択可能）
               </label>
@@ -834,7 +835,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedFocusItems([])}
-                  className="text-[11px] text-slate-500 hover:text-slate-700 underline"
+                  className="text-xs text-slate-500 hover:text-slate-700 underline"
                 >
                   選択をクリア
                 </button>
@@ -845,7 +846,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             <div className="space-y-2">
               {FOCUS_OPTION_GROUPS.map((group) => (
                 <div key={group.category} className="space-y-1">
-                  <div className="text-[11px] font-bold text-slate-500">{group.category}</div>
+                  <div className="text-xs font-bold text-slate-600">{group.category}</div>
                   <div className="flex flex-wrap gap-1.5">
                     {group.items.map((item) => {
                       const isSelected = selectedFocusItems.includes(item);
@@ -878,7 +879,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
 
             {/* 自由追記エリア */}
             <div className="pt-2 border-t border-slate-200/80">
-              <label className="block text-[11px] font-bold text-slate-600 mb-1">
+              <label className="block text-xs font-bold text-slate-600 mb-1">
                 ✏️ その他の自由な追加指示（任意）
               </label>
               <input
@@ -886,7 +887,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
                 placeholder="例：〇〇さんの発言を特に詳しく残す、結論の理由を丁寧に記載 など"
                 value={customFocusText}
                 onChange={(e) => setCustomFocusText(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20"
+                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs sm:text-sm outline-none focus:ring-2 focus:ring-slate-500/20"
               />
             </div>
           </div>
@@ -895,7 +896,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             <button
               type="button"
               onClick={() => setStep(2)}
-              className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl flex items-center gap-2 transition"
+              className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm rounded-xl flex items-center gap-2 transition"
             >
               <ArrowLeft className="w-4 h-4" /> 戻る
             </button>
@@ -904,7 +905,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
               type="button"
               onClick={handleGenerate}
               disabled={isLoading || (!audioBase64 && !audioFileUri && !transcriptPreview && !inputText && attachmentFiles.length === 0)}
-              className="px-8 py-3 bg-[#283136] hover:bg-[#1c2226] disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-md flex items-center gap-2 transition"
+              className="w-full sm:w-auto px-8 py-3 bg-[#283136] hover:bg-[#1c2226] disabled:opacity-50 text-white font-bold text-sm sm:text-base rounded-xl shadow-md flex items-center justify-center gap-2 transition"
             >
               {isLoading ? (
                 <>
@@ -927,18 +928,18 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
             <div>
-              <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-slate-700" />
                 議事録が完成しました（自由に修正可能）
               </h2>
-              <div className="flex flex-wrap gap-2 text-xs text-slate-500 mt-1">
+              <div className="flex flex-wrap gap-2 text-xs sm:text-sm text-slate-600 mt-1">
                 <span>📅 {formatJPDate(meetingDate)}</span>
                 <span>🏢 {dept}</span>
                 <span>📋 {effectiveMeetingType}</span>
                 <span>👥 {participants || "（未指定）"}</span>
                 {selectedRecordId && (
                   <span className="text-slate-800 font-bold bg-slate-100 px-2 py-0.5 rounded-full border border-slate-300 flex items-center gap-1">
-                    <LinkIcon className="w-3 h-3" /> アジェンダ連携中
+                    <LinkIcon className="w-3.5 h-3.5" /> アジェンダ連携中
                   </span>
                 )}
               </div>
@@ -946,7 +947,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
 
             <button
               onClick={() => setStep(3)}
-              className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1"
+              className="text-xs sm:text-sm text-slate-400 hover:text-slate-600 flex items-center gap-1"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> データ入力に戻る
             </button>
@@ -969,65 +970,65 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
 
           {/* 1. 会議要約 */}
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-            <label className="block text-xs font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+            <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
               📌 1. 会議要約（ハイライト）
             </label>
             <textarea
               rows={3}
               value={minutesResult.summary || ""}
               onChange={(e) => setMinutesResult({ ...minutesResult, summary: e.target.value })}
-              className="w-full bg-white border border-slate-300 rounded-lg p-3 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
+              className="w-full bg-white border border-slate-300 rounded-lg p-3 text-sm sm:text-base outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
             />
           </div>
 
           {/* 2. 議論内容・経緯 */}
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-            <label className="block text-xs font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
-              <MessageSquare className="w-3.5 h-3.5 text-slate-600" />
+            <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+              <MessageSquare className="w-4 h-4 text-slate-600" />
               💡 2. 議論内容・経緯（各議題ごとの発言・流れ）
             </label>
             <textarea
-              rows={7}
+              rows={8}
               value={minutesResult.discussions !== undefined ? minutesResult.discussions : displayDiscussions}
               onChange={(e) =>
                 setMinutesResult({ ...minutesResult, discussions: e.target.value })
               }
-              className="w-full bg-white border border-slate-300 rounded-lg p-3 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed font-mono"
+              className="w-full bg-white border border-slate-300 rounded-lg p-3 text-sm sm:text-base outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed font-mono"
             />
           </div>
 
           {/* 3. 決定事項・ToDo */}
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-            <label className="block text-xs font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
-              <ListTodo className="w-3.5 h-3.5 text-slate-600" />
+            <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+              <ListTodo className="w-4 h-4 text-slate-600" />
               ✨ 3. 決定事項・ToDo（担当・期日）
             </label>
             <textarea
-              rows={4}
+              rows={5}
               value={minutesResult.action_plans || ""}
               onChange={(e) => setMinutesResult({ ...minutesResult, action_plans: e.target.value })}
-              className="w-full bg-white border border-slate-300 rounded-lg p-3 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed font-mono"
+              className="w-full bg-white border border-slate-300 rounded-lg p-3 text-sm sm:text-base outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed font-mono"
             />
           </div>
 
           {/* 4. 次回検討・特記事項 */}
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-            <label className="block text-xs font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-slate-600" />
+            <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+              <Calendar className="w-4 h-4 text-slate-600" />
               📅 4. 次回検討・特記事項（宿題・理念・AI助言）
             </label>
             <textarea
               rows={3}
               value={minutesResult.next_steps !== undefined ? minutesResult.next_steps : displayNextSteps}
               onChange={(e) => setMinutesResult({ ...minutesResult, next_steps: e.target.value })}
-              className="w-full bg-white border border-slate-300 rounded-lg p-3 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
+              className="w-full bg-white border border-slate-300 rounded-lg p-3 text-sm sm:text-base outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
             />
           </div>
 
           {/* 保存ステータスバナー */}
           {saveStatus === "saved" && (
             <div className="p-3.5 bg-slate-100 border border-slate-300 rounded-xl flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+              <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-800">
                 <CheckCircle2 className="w-5 h-5 text-slate-700 flex-shrink-0" />
                 議事録が正常に保存されました！（ステータス：議事録完了）
               </div>
@@ -1035,7 +1036,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
                 <button
                   type="button"
                   onClick={onGoToHistory}
-                  className="px-3 py-1.5 bg-[#283136] hover:bg-[#1c2226] text-white rounded-lg text-xs font-bold flex items-center gap-1 transition"
+                  className="px-3 py-1.5 bg-[#283136] hover:bg-[#1c2226] text-white rounded-lg text-xs sm:text-sm font-bold flex items-center gap-1 transition"
                 >
                   ログ一覧で確認 <ArrowRight className="w-3.5 h-3.5" />
                 </button>
@@ -1048,7 +1049,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             <button
               onClick={handleSave}
               disabled={saveStatus === "saving"}
-              className={`px-5 py-2.5 font-bold text-xs md:text-sm rounded-xl shadow-sm flex items-center gap-2 transition ${
+              className={`px-5 py-2.5 font-bold text-xs sm:text-sm rounded-xl shadow-sm flex items-center gap-2 transition ${
                 saveStatus === "saved"
                   ? "bg-slate-700 text-white hover:bg-slate-800"
                   : "bg-[#283136] hover:bg-[#1c2226] text-white"
@@ -1071,25 +1072,25 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             </button>
             <button
               onClick={handleCopyChatSummary}
-              className="px-4 py-2.5 bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs md:text-sm rounded-xl flex items-center gap-2 transition shadow-sm"
+              className="px-4 py-2.5 bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm rounded-xl flex items-center gap-2 transition shadow-sm"
             >
               <Share2 className="w-4 h-4" /> LINE WORKS用コピー
             </button>
             <button
               onClick={handleDownloadDocx}
-              className="px-4 py-2.5 bg-[#283136] hover:bg-[#1c2226] text-white font-bold text-xs md:text-sm rounded-xl flex items-center gap-2 transition shadow-sm"
+              className="px-4 py-2.5 bg-[#283136] hover:bg-[#1c2226] text-white font-bold text-xs sm:text-sm rounded-xl flex items-center gap-2 transition shadow-sm"
             >
               <Download className="w-4 h-4" /> Word保存
             </button>
             <button
               onClick={handleCopyText}
-              className="px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold text-xs md:text-sm rounded-xl flex items-center gap-2 transition"
+              className="px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold text-xs sm:text-sm rounded-xl flex items-center gap-2 transition"
             >
               <Copy className="w-4 h-4" /> テキストをコピー
             </button>
             <button
               onClick={() => window.print()}
-              className="px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold text-xs md:text-sm rounded-xl flex items-center gap-2 transition"
+              className="px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold text-xs sm:text-sm rounded-xl flex items-center gap-2 transition"
             >
               <Printer className="w-4 h-4" /> 印刷
             </button>

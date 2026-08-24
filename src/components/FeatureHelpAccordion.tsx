@@ -28,24 +28,24 @@ export const FeatureHelpAccordion: React.FC<FeatureHelpAccordionProps> = ({
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-4 py-2.5 flex items-center justify-between text-left hover:bg-slate-100/70 transition cursor-pointer"
       >
-        <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+        <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-800">
           <HelpCircle className="w-4 h-4 text-slate-500 flex-shrink-0" />
           <span>{title}</span>
         </div>
-        <div className="flex items-center gap-1 text-[11px] text-slate-500 font-medium">
+        <div className="flex items-center gap-1 text-xs text-slate-500 font-medium flex-shrink-0">
           <span>{isOpen ? "閉じる" : "使い方・ポイントを見る"}</span>
-          {isOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </div>
       </button>
 
       {isOpen && (
-        <div className="px-4 pb-3.5 pt-2 text-xs text-slate-700 space-y-2 border-t border-slate-200/60 bg-white/80">
+        <div className="px-4 pb-3.5 pt-2.5 text-xs sm:text-sm text-slate-700 space-y-2.5 border-t border-slate-200/60 bg-white/80">
           {items.map((item, idx) => (
-            <div key={idx} className="flex items-start gap-2">
-              <span className="font-bold text-slate-800 flex-shrink-0 min-w-[90px]">
+            <div key={idx} className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-3">
+              <span className="font-bold text-slate-800 flex-shrink-0 min-w-[110px]">
                 {item.label}
               </span>
-              <span className="text-slate-600 leading-relaxed">{item.text}</span>
+              <span className="text-slate-600 leading-relaxed flex-1">{item.text}</span>
             </div>
           ))}
         </div>

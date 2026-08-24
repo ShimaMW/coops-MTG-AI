@@ -256,14 +256,14 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
             placeholder="キーワード・参加者・内容で検索..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs md:text-sm outline-none focus:border-slate-600 focus:bg-white transition"
+            className="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm outline-none focus:border-slate-600 focus:bg-white transition"
           />
         </div>
 
         <select
           value={filterDept}
           onChange={(e) => setFilterDept(e.target.value)}
-          className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs md:text-sm outline-none focus:border-slate-600 focus:bg-white transition font-medium"
+          className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm outline-none focus:border-slate-600 focus:bg-white transition font-medium"
         >
           <option value="all">すべての事業所・部署</option>
           {departments.map((d) => (
@@ -276,7 +276,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
         <select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
-          className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs md:text-sm outline-none focus:border-slate-600 focus:bg-white transition"
+          className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm outline-none focus:border-slate-600 focus:bg-white transition font-medium"
         >
           <option value="all">すべての会議種別</option>
           {DEFAULT_MEETING_TYPES.map((t) => (
@@ -291,7 +291,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
           type="button"
           onClick={handleManualSync}
           disabled={isSyncing}
-          className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition border border-slate-300"
+          className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm rounded-xl flex items-center gap-1.5 transition border border-slate-300"
           title="最新の情報を再取得"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin text-slate-800" : "text-slate-600"}`} />
@@ -302,16 +302,16 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
       {/* ログ一覧テーブル */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+          <h3 className="text-sm sm:text-base font-bold text-slate-800 flex items-center gap-2">
             <Table className="w-4 h-4 text-slate-700" />
             アジェンダ・議事録 ログ一覧（{filteredRecords.length}件）
           </h3>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+          <table className="w-full text-left text-xs sm:text-sm border-collapse">
             <thead>
-              <tr className="bg-[#283136] text-white font-bold">
+              <tr className="bg-[#283136] text-white font-bold text-xs sm:text-sm">
                 <th className="py-3 px-4 whitespace-nowrap">開催日</th>
                 <th className="py-3 px-4">部署</th>
                 <th className="py-3 px-4">会議種別</th>
@@ -344,11 +344,11 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                       </td>
                       <td className="py-3 px-4 text-center whitespace-nowrap">
                         {isDone ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-800 border border-slate-300">
-                            <CheckCircle2 className="w-3 h-3 text-slate-600" /> 議事録完了
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-800 border border-slate-300">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-slate-600" /> 議事録完了
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-50 text-slate-600 border border-slate-200">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-slate-50 text-slate-600 border border-slate-200">
                             アジェンダのみ
                           </span>
                         )}
@@ -358,7 +358,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                         {rec.agenda ? (
                           <button
                             onClick={() => openModal(rec, "agenda")}
-                            className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded-lg font-bold transition shadow-xs"
+                            className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded-lg text-xs font-bold transition shadow-xs"
                           >
                             表示・編集
                           </button>
@@ -371,7 +371,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                         {rec.minutes ? (
                           <button
                             onClick={() => openModal(rec, "minutes")}
-                            className="px-2.5 py-1 bg-[#283136] hover:bg-[#1c2226] text-white rounded-lg font-bold transition shadow-xs"
+                            className="px-2.5 py-1 bg-[#283136] hover:bg-[#1c2226] text-white rounded-lg text-xs font-bold transition shadow-xs"
                           >
                             表示・編集
                           </button>
@@ -434,18 +434,18 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                   <FileText className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm md:text-base text-white flex items-center gap-2">
+                  <h3 className="font-bold text-sm sm:text-base text-white flex items-center gap-2">
                     <span>{modalTab === "minutes" ? "議事録確認・編集" : "事前アジェンダ確認・編集"}</span>
                     {isEditing && (
-                      <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-400/40 text-[10px] font-bold rounded">
+                      <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-400/40 text-xs font-bold rounded">
                         編集中
                       </span>
                     )}
-                    <span className="text-xs font-normal text-slate-300">
+                    <span className="text-xs sm:text-sm font-normal text-slate-300">
                       ｜ {selectedRecord.dept} {selectedRecord.meetingType}
                     </span>
                   </h3>
-                  <div className="text-[11px] text-slate-300 mt-0.5 flex items-center gap-3">
+                  <div className="text-xs text-slate-300 mt-0.5 flex items-center gap-3">
                     <span>📅 開催日: {formatJPDate(selectedRecord.meetingDate)}</span>
                     {!isEditing ? (
                       <span>👥 参加者: {selectedRecord.participants || "未指定"}</span>
@@ -456,7 +456,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                           type="text"
                           value={editParticipants}
                           onChange={(e) => setEditParticipants(e.target.value)}
-                          className="bg-white/20 border border-white/30 rounded px-2 py-0.5 text-xs text-white outline-none focus:bg-white/30"
+                          className="bg-white/20 border border-white/30 rounded px-2 py-0.5 text-xs sm:text-sm text-white outline-none focus:bg-white/30"
                           placeholder="参加者名"
                         />
                       </div>
@@ -497,7 +497,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                     setModalTab("minutes");
                     setIsEditing(false);
                   }}
-                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition ${
+                  className={`flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition ${
                     modalTab === "minutes"
                       ? "bg-white text-slate-900 shadow-sm"
                       : "text-slate-500 hover:text-slate-800"
@@ -511,7 +511,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                     setModalTab("agenda");
                     setIsEditing(false);
                   }}
-                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition ${
+                  className={`flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition ${
                     modalTab === "agenda"
                       ? "bg-white text-slate-900 shadow-sm"
                       : "text-slate-500 hover:text-slate-800"
@@ -523,16 +523,16 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
             )}
 
             {/* モーダル本文（閲覧 / 編集モード） */}
-            <div className="p-6 overflow-y-auto space-y-4 text-xs md:text-sm leading-relaxed text-slate-800 bg-white">
+            <div className="p-6 overflow-y-auto space-y-4 text-sm sm:text-base leading-relaxed text-slate-800 bg-white">
               {modalTab === "minutes" && (selectedRecord.minutes || editMinutes) && (
                 <div className="space-y-4">
                   {/* 1. 会議要約 */}
                   <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                    <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200">
+                    <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200 text-xs sm:text-sm">
                       📌 1. 会議要約（ハイライト）
                     </div>
                     {!isEditing ? (
-                      <p className="whitespace-pre-wrap text-slate-700 leading-relaxed font-sans">
+                      <p className="whitespace-pre-wrap text-slate-700 leading-relaxed font-sans text-sm sm:text-base">
                         {selectedRecord.minutes?.summary}
                       </p>
                     ) : (
@@ -542,19 +542,19 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                         onChange={(e) =>
                           setEditMinutes({ ...(editMinutes || selectedRecord.minutes!), summary: e.target.value })
                         }
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
+                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm sm:text-base outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
                       />
                     )}
                   </div>
 
                   {/* 2. 議論内容・経緯 */}
                   <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                    <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200">
+                    <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200 text-xs sm:text-sm">
                       <MessageSquare className="w-4 h-4 text-slate-600" />
                       💡 2. 議論内容・経緯（各議題ごとの発言・流れ）
                     </div>
                     {!isEditing ? (
-                      <p className="whitespace-pre-wrap font-mono text-slate-700 leading-relaxed">
+                      <p className="whitespace-pre-wrap font-mono text-slate-700 leading-relaxed text-sm sm:text-base">
                         {selectedRecord.minutes?.discussions ||
                           [selectedRecord.minutes?.agenda_items, selectedRecord.minutes?.key_discussions]
                             .filter(Boolean)
@@ -571,19 +571,19 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                         onChange={(e) =>
                           setEditMinutes({ ...(editMinutes || selectedRecord.minutes!), discussions: e.target.value })
                         }
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed font-mono"
+                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm sm:text-base outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed font-mono"
                       />
                     )}
                   </div>
 
                   {/* 3. 決定事項・ToDo */}
                   <div className="p-4 bg-slate-50 border border-slate-300 rounded-xl border-l-4 border-l-slate-700">
-                    <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200">
+                    <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200 text-xs sm:text-sm">
                       <ListTodo className="w-4 h-4 text-slate-700" />
                       ✨ 3. 決定事項・ToDo（担当・期日）
                     </div>
                     {!isEditing ? (
-                      <p className="whitespace-pre-wrap font-mono text-slate-800 leading-relaxed font-medium">
+                      <p className="whitespace-pre-wrap font-mono text-slate-800 leading-relaxed font-medium text-sm sm:text-base">
                         {selectedRecord.minutes?.action_plans}
                       </p>
                     ) : (
@@ -593,19 +593,19 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                         onChange={(e) =>
                           setEditMinutes({ ...(editMinutes || selectedRecord.minutes!), action_plans: e.target.value })
                         }
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed font-mono font-medium"
+                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm sm:text-base outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed font-mono font-medium"
                       />
                     )}
                   </div>
 
                   {/* 4. 次回検討・特記事項 */}
                   <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                    <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200">
+                    <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200 text-xs sm:text-sm">
                       <Calendar className="w-4 h-4 text-slate-600" />
                       📅 4. 次回検討・特記事項（宿題・理念・助言）
                     </div>
                     {!isEditing ? (
-                      <p className="whitespace-pre-wrap text-slate-700 leading-relaxed">
+                      <p className="whitespace-pre-wrap text-slate-700 leading-relaxed text-sm sm:text-base">
                         {selectedRecord.minutes?.next_steps ||
                           [
                             selectedRecord.minutes?.culture_notes,
@@ -632,7 +632,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                         onChange={(e) =>
                           setEditMinutes({ ...(editMinutes || selectedRecord.minutes!), next_steps: e.target.value })
                         }
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
+                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm sm:text-base outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
                       />
                     )}
                   </div>
@@ -642,12 +642,12 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
               {modalTab === "agenda" && (selectedRecord.agenda || editAgenda) && (
                 <div className="space-y-4">
                   <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                    <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200">
+                    <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200 text-xs sm:text-sm">
                       <Target className="w-4 h-4 text-slate-600" />
                       🎯 目的（Purpose）
                     </div>
                     {!isEditing ? (
-                      <p className="whitespace-pre-wrap text-slate-700 leading-relaxed">{selectedRecord.agenda?.purpose}</p>
+                      <p className="whitespace-pre-wrap text-slate-700 leading-relaxed text-sm sm:text-base">{selectedRecord.agenda?.purpose}</p>
                     ) : (
                       <textarea
                         rows={2}
@@ -655,18 +655,18 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                         onChange={(e) =>
                           setEditAgenda({ ...(editAgenda || selectedRecord.agenda!), purpose: e.target.value })
                         }
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
+                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm sm:text-base outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
                       />
                     )}
                   </div>
 
                   <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                    <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200">
+                    <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200 text-xs sm:text-sm">
                       <FileCheck className="w-4 h-4 text-slate-600" />
                       🏁 達成したい成果（Outcome）
                     </div>
                     {!isEditing ? (
-                      <p className="whitespace-pre-wrap text-slate-700 leading-relaxed">{selectedRecord.agenda?.outcome}</p>
+                      <p className="whitespace-pre-wrap text-slate-700 leading-relaxed text-sm sm:text-base">{selectedRecord.agenda?.outcome}</p>
                     ) : (
                       <textarea
                         rows={2}
@@ -674,19 +674,19 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                         onChange={(e) =>
                           setEditAgenda({ ...(editAgenda || selectedRecord.agenda!), outcome: e.target.value })
                         }
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
+                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm sm:text-base outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
                       />
                     )}
                   </div>
 
                   {(selectedRecord.agenda?.review || isEditing) && (
                     <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                      <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200">
+                      <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200 text-xs sm:text-sm">
                         <RotateCcw className="w-4 h-4 text-slate-600" />
                         🔄 前回の振り返り
                       </div>
                       {!isEditing ? (
-                        <p className="whitespace-pre-wrap text-slate-700 leading-relaxed">{selectedRecord.agenda?.review}</p>
+                        <p className="whitespace-pre-wrap text-slate-700 leading-relaxed text-sm sm:text-base">{selectedRecord.agenda?.review}</p>
                       ) : (
                         <textarea
                           rows={2}
@@ -694,18 +694,18 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                           onChange={(e) =>
                             setEditAgenda({ ...(editAgenda || selectedRecord.agenda!), review: e.target.value })
                           }
-                          className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
+                          className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm sm:text-base outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
                         />
                       )}
                     </div>
                   )}
 
                   <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                    <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200">
+                    <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200 text-xs sm:text-sm">
                       📋 各議題の詳細
                     </div>
                     {!isEditing ? (
-                      <p className="whitespace-pre-wrap font-mono text-slate-700 leading-relaxed">
+                      <p className="whitespace-pre-wrap font-mono text-slate-700 leading-relaxed text-sm sm:text-base">
                         {formatAgendaItemsText(selectedRecord.agenda?.agenda_items)}
                       </p>
                     ) : (
@@ -715,17 +715,17 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                         onChange={(e) =>
                           setEditAgenda({ ...(editAgenda || selectedRecord.agenda!), agenda_items: e.target.value })
                         }
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed font-mono"
+                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm sm:text-base outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed font-mono"
                       />
                     )}
                   </div>
 
                   <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                    <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200">
+                    <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200 text-xs sm:text-sm">
                       🏁 クロージング
                     </div>
                     {!isEditing ? (
-                      <p className="whitespace-pre-wrap text-slate-700 leading-relaxed">{selectedRecord.agenda?.closing}</p>
+                      <p className="whitespace-pre-wrap text-slate-700 leading-relaxed text-sm sm:text-base">{selectedRecord.agenda?.closing}</p>
                     ) : (
                       <textarea
                         rows={2}
@@ -733,7 +733,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                         onChange={(e) =>
                           setEditAgenda({ ...(editAgenda || selectedRecord.agenda!), closing: e.target.value })
                         }
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
+                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm sm:text-base outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
                       />
                     )}
                   </div>
@@ -748,16 +748,16 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                   <button
                     onClick={handleStartEdit}
                     disabled={isSyncing}
-                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm"
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-xs sm:text-sm rounded-xl flex items-center gap-1.5 transition shadow-sm"
                   >
-                    <Edit3 className="w-3.5 h-3.5" /> 編集する
+                    <Edit3 className="w-4 h-4" /> 編集する
                   </button>
                 ) : (
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleSaveEdit}
                       disabled={isSaving}
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm"
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs sm:text-sm rounded-xl flex items-center gap-1.5 transition shadow-sm"
                     >
                       {isSaving ? (
                         <>
@@ -766,13 +766,13 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                         </>
                       ) : (
                         <>
-                          <Save className="w-3.5 h-3.5" /> 変更を保存
+                          <Save className="w-4 h-4" /> 変更を保存
                         </>
                       )}
                     </button>
                     <button
                       onClick={handleCancelEdit}
-                      className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl transition"
+                      className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs sm:text-sm rounded-xl transition"
                     >
                       キャンセル
                     </button>
@@ -788,9 +788,9 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                       navigator.clipboard.writeText(text);
                       showToast("LINE WORKS / チャット用要約をコピーしました 📢");
                     }}
-                    className="px-3.5 py-2 bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm"
+                    className="px-3.5 py-2 bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm rounded-xl flex items-center gap-1.5 transition shadow-sm"
                   >
-                    <Share2 className="w-3.5 h-3.5" /> LINE WORKS用コピー
+                    <Share2 className="w-4 h-4" /> LINE WORKS用コピー
                   </button>
                 )}
                 {modalTab === "agenda" && selectedRecord.agenda && !isEditing && (
@@ -806,16 +806,16 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                       });
                       window.open(url, "_blank");
                     }}
-                    className="px-3.5 py-2 bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm"
+                    className="px-3.5 py-2 bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm rounded-xl flex items-center gap-1.5 transition shadow-sm"
                   >
-                    <CalendarPlus className="w-3.5 h-3.5" /> Googleカレンダーに登録
+                    <CalendarPlus className="w-4 h-4" /> Googleカレンダーに登録
                   </button>
                 )}
                 <button
                   onClick={() => downloadMeetingDocx(selectedRecord)}
-                  className="px-3.5 py-2 bg-[#283136] hover:bg-[#1c2226] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm"
+                  className="px-3.5 py-2 bg-[#283136] hover:bg-[#1c2226] text-white font-bold text-xs sm:text-sm rounded-xl flex items-center gap-1.5 transition shadow-sm"
                 >
-                  <Download className="w-3.5 h-3.5" /> Word保存
+                  <Download className="w-4 h-4" /> Word保存
                 </button>
                 <button
                   onClick={() => {
@@ -826,15 +826,15 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                     navigator.clipboard.writeText(text);
                     showToast("テキストをコピーしました ✓");
                   }}
-                  className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold text-xs rounded-xl flex items-center gap-1.5 transition"
+                  className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold text-xs sm:text-sm rounded-xl flex items-center gap-1.5 transition"
                 >
-                  <Copy className="w-3.5 h-3.5" /> 全文コピー
+                  <Copy className="w-4 h-4" /> 全文コピー
                 </button>
                 <button
                   onClick={() => window.print()}
-                  className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold text-xs rounded-xl flex items-center gap-1.5 transition"
+                  className="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold text-xs sm:text-sm rounded-xl flex items-center gap-1.5 transition"
                 >
-                  <Printer className="w-3.5 h-3.5" /> 印刷
+                  <Printer className="w-4 h-4" /> 印刷
                 </button>
                 <button
                   onClick={() => {
@@ -842,7 +842,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                     setSelectedRecord(null);
                     setIsEditing(false);
                   }}
-                  className="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl transition"
+                  className="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs sm:text-sm rounded-xl transition"
                 >
                   閉じる
                 </button>

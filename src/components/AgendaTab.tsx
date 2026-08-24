@@ -364,27 +364,27 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           {/* 日付入力 */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+            <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5 flex items-center justify-between">
               <span>📅 会議日</span>
               <div className="flex gap-1">
                 <button
                   type="button"
                   onClick={() => setQuickDate(-1)}
-                  className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-[10px]"
+                  className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-xs font-medium"
                 >
                   昨日
                 </button>
                 <button
                   type="button"
                   onClick={() => setQuickDate(0)}
-                  className="px-1.5 py-0.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded text-[10px]"
+                  className="px-2 py-0.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded text-xs"
                 >
                   今日
                 </button>
                 <button
                   type="button"
                   onClick={() => setQuickDate(1)}
-                  className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-[10px]"
+                  className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-xs font-medium"
                 >
                   明日
                 </button>
@@ -396,7 +396,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
                 placeholder="2026/8/21"
                 value={meetingDate}
                 onChange={(e) => setMeetingDate(e.target.value)}
-                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition"
+                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm sm:text-base outline-none focus:border-slate-600 focus:bg-white transition"
               />
               <div className="relative">
                 <input
@@ -416,11 +416,11 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">🏢 部署・事業所</label>
+            <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">🏢 部署・事業所</label>
             <select
               value={dept}
               onChange={(e) => setDept(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm sm:text-base outline-none focus:border-slate-600 focus:bg-white transition"
             >
               {departments.map((d) => (
                 <option key={d} value={d}>
@@ -434,11 +434,11 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
         {/* 会議種別 & 参加者 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">📋 会議種別</label>
+            <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">📋 会議種別</label>
             <select
               value={meetingType}
               onChange={(e) => setMeetingType(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm sm:text-base outline-none focus:border-slate-600 focus:bg-white transition"
             >
               {DEFAULT_MEETING_TYPES.map((t) => (
                 <option key={t} value={t}>
@@ -452,19 +452,19 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
                 placeholder="会議種別名を入力（例: 業務改善検討会）"
                 value={customMeetingType}
                 onChange={(e) => setCustomMeetingType(e.target.value)}
-                className="w-full mt-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-slate-600 focus:bg-white transition"
+                className="w-full mt-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-slate-600 focus:bg-white transition"
               />
             )}
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">👥 参加者</label>
+            <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">👥 参加者</label>
             <input
               type="text"
               placeholder="例：佐藤、田中、高橋、渡辺"
               value={participants}
               onChange={(e) => setParticipants(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm sm:text-base outline-none focus:border-slate-600 focus:bg-white transition"
             />
           </div>
         </div>
@@ -472,8 +472,8 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
         {/* ── 予定時間（1行スリムバー） ── */}
         <div className="mb-4 bg-slate-50 border border-slate-200 rounded-xl p-2.5 sm:px-3.5 flex flex-wrap items-center justify-between gap-2.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5 text-slate-700" /> 予定時間:
+            <span className="text-xs sm:text-sm font-bold text-slate-700 flex items-center gap-1">
+              <Clock className="w-4 h-4 text-slate-700" /> 予定時間:
             </span>
 
             {isManualDuration ? (
@@ -482,7 +482,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
                 placeholder="例：10:00〜11:30、または 1時間"
                 value={manualDurationText}
                 onChange={(e) => setManualDurationText(e.target.value)}
-                className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 outline-none focus:border-slate-600 transition min-w-[160px]"
+                className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-sm font-bold text-slate-800 outline-none focus:border-slate-600 transition min-w-[160px]"
               />
             ) : (
               <div className="flex items-center gap-1.5">
@@ -490,14 +490,14 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
                   type="time"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
-                  className="bg-white border border-slate-200 rounded-lg px-2 py-0.5 text-xs font-bold text-slate-800 outline-none focus:border-slate-600 transition"
+                  className="bg-white border border-slate-200 rounded-lg px-2 py-0.5 text-xs sm:text-sm font-bold text-slate-800 outline-none focus:border-slate-600 transition"
                 />
-                <span className="text-slate-400 font-bold text-xs">〜</span>
+                <span className="text-slate-400 font-bold text-xs sm:text-sm">〜</span>
                 <input
                   type="time"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
-                  className="bg-white border border-slate-200 rounded-lg px-2 py-0.5 text-xs font-bold text-slate-800 outline-none focus:border-slate-600 transition"
+                  className="bg-white border border-slate-200 rounded-lg px-2 py-0.5 text-xs sm:text-sm font-bold text-slate-800 outline-none focus:border-slate-600 transition"
                 />
               </div>
             )}
@@ -517,7 +517,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
                     key={item.label}
                     type="button"
                     onClick={() => applyQuickDurationMinutes(item.mins)}
-                    className="px-2 py-0.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-[11px] font-medium transition"
+                    className="px-2 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-xs font-medium transition"
                   >
                     {item.label}
                   </button>
@@ -533,9 +533,9 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
                 }
                 setIsManualDuration(!isManualDuration);
               }}
-              className="text-[11px] text-slate-500 hover:text-slate-800 font-medium flex items-center gap-0.5 ml-1"
+              className="text-xs text-slate-600 hover:text-slate-900 font-bold flex items-center gap-0.5 ml-1"
             >
-              <Edit3 className="w-3 h-3" />
+              <Edit3 className="w-3.5 h-3.5" />
               {isManualDuration ? "時間選択" : "手入力"}
             </button>
           </div>
@@ -546,19 +546,19 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
           {/* 左：広大な議題メモ（8カラム） */}
           <div className="lg:col-span-8 flex flex-col h-full space-y-2">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-              <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <label className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-1.5">
                 📝 議題メモ・共有事項
               </label>
 
               {/* テンプレート選択（スマホでは全幅、PCでは右寄せ、突き抜け防止） */}
               <div className="flex items-center gap-1.5 w-full sm:w-auto">
-                <span className="text-[11px] text-slate-600 font-bold whitespace-nowrap flex-shrink-0">
+                <span className="text-xs text-slate-600 font-bold whitespace-nowrap flex-shrink-0">
                   💡 テンプレ:
                 </span>
                 <select
                   value={selectedTemplateId}
                   onChange={(e) => handleSelectTemplate(e.target.value)}
-                  className="flex-1 sm:flex-initial bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 font-medium outline-none focus:border-slate-600 w-full sm:w-auto max-w-full sm:max-w-[220px] truncate"
+                  className="flex-1 sm:flex-initial bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs sm:text-sm text-slate-800 font-medium outline-none focus:border-slate-600 w-full sm:w-auto max-w-full sm:max-w-[220px] truncate"
                 >
                   <option value="">― テンプレートを選択 ―</option>
                   {AGENDA_TEMPLATES.map((tmpl) => (
@@ -575,14 +575,14 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
               placeholder="例：&#10;・今月のヒヤリハット報告（転倒リスクの再確認と今後の手順）&#10;・新スタッフ2名の同行スケジュール決定（同行指導担当者の割り当て）&#10;・送迎ルート見直しの進捗確認（所要時間の短縮案）&#10;・利用者A様の体調変化に伴うケアプラン変更検討"
               value={topics}
               onChange={(e) => setTopics(e.target.value)}
-              className="w-full flex-1 min-h-[280px] bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition leading-relaxed font-mono resize-y"
+              className="w-full flex-1 min-h-[280px] bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm sm:text-base outline-none focus:border-slate-600 focus:bg-white transition leading-relaxed font-mono resize-y"
             ></textarea>
           </div>
 
           {/* 右：事前資料・写真添付（4カラム、コンパクト表示） */}
           <div className="lg:col-span-4 flex flex-col h-full">
-            <label className="block text-xs font-bold text-slate-700 mb-2 flex items-center gap-1.5">
-              <Paperclip className="w-3.5 h-3.5 text-slate-600" />
+            <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-2 flex items-center gap-1.5">
+              <Paperclip className="w-4 h-4 text-slate-600" />
               📎 事前資料・添付ファイル（任意）
             </label>
             <div className="flex-1 flex flex-col min-h-[280px]">
@@ -609,7 +609,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
             type="button"
             onClick={handleGenerate}
             disabled={isLoading}
-            className="w-full sm:w-auto px-8 py-3 bg-[#283136] hover:bg-[#1c2226] disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-md flex items-center justify-center gap-2 mx-auto transition"
+            className="w-full sm:w-auto px-8 py-3 bg-[#283136] hover:bg-[#1c2226] disabled:opacity-50 text-white font-bold text-sm sm:text-base rounded-xl shadow-md flex items-center justify-center gap-2 mx-auto transition"
           >
             {isLoading ? (
               <>
@@ -630,13 +630,13 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
       {generatedAgenda && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+            <h3 className="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-slate-700" />
               生成されたアジェンダ（編集可能）
             </h3>
             <button
               onClick={() => setGeneratedAgenda(null)}
-              className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1"
+              className="text-xs sm:text-sm text-slate-400 hover:text-slate-600 flex items-center gap-1"
             >
               <RotateCcw className="w-3.5 h-3.5" /> 閉じる
             </button>
@@ -644,83 +644,83 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
 
           {/* 目的 */}
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-            <label className="block text-xs font-bold text-slate-800 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200">
-              <Target className="w-3.5 h-3.5 text-slate-600" /> 🎯 目的（Purpose）
+            <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200">
+              <Target className="w-4 h-4 text-slate-600" /> 🎯 目的（Purpose）
             </label>
             <textarea
               rows={2}
               value={generatedAgenda.purpose || ""}
               onChange={(e) => setGeneratedAgenda({ ...generatedAgenda, purpose: e.target.value })}
-              className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
+              className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm sm:text-base outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
             />
           </div>
 
           {/* 達成成果 */}
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-            <label className="block text-xs font-bold text-slate-800 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200">
-              <FileCheck className="w-3.5 h-3.5 text-slate-600" /> 🏁 達成したい成果・決定事項（Outcome）
+            <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200">
+              <FileCheck className="w-4 h-4 text-slate-600" /> 🏁 達成したい成果・決定事項（Outcome）
             </label>
             <textarea
               rows={2}
               value={generatedAgenda.outcome || ""}
               onChange={(e) => setGeneratedAgenda({ ...generatedAgenda, outcome: e.target.value })}
-              className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
+              className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm sm:text-base outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
             />
           </div>
 
           {/* 振り返り */}
           {generatedAgenda.review && (
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-              <label className="block text-xs font-bold text-slate-800 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200">
+              <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200">
                 🔄 前回の振り返り・継続事項
               </label>
               <textarea
                 rows={2}
                 value={generatedAgenda.review || ""}
                 onChange={(e) => setGeneratedAgenda({ ...generatedAgenda, review: e.target.value })}
-                className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
+                className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm sm:text-base outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
               />
             </div>
           )}
 
           {/* 各議題 */}
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-            <label className="block text-xs font-bold text-slate-800 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200">
+            <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200">
               📋 各議題の詳細（AIアドバイス・確認ポイント含む）
             </label>
             <textarea
               rows={8}
               value={generatedAgenda.agenda_items || ""}
               onChange={(e) => setGeneratedAgenda({ ...generatedAgenda, agenda_items: e.target.value })}
-              className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed font-mono"
+              className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm sm:text-base outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed font-mono"
             />
           </div>
 
           {/* クロージング */}
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-            <label className="block text-xs font-bold text-slate-800 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200">
+            <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200">
               🏁 クロージング
             </label>
             <textarea
               rows={2}
               value={generatedAgenda.closing || ""}
               onChange={(e) => setGeneratedAgenda({ ...generatedAgenda, closing: e.target.value })}
-              className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
+              className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm sm:text-base outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
             />
           </div>
 
           {/* 保存ステータスバナー */}
           {saveStatus === "saved" && (
             <div className="p-3.5 bg-slate-100 border border-slate-300 rounded-xl flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
-                <CheckCircle2 className="w-4 h-4 text-slate-700 flex-shrink-0" />
+              <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-800">
+                <CheckCircle2 className="w-5 h-5 text-slate-700 flex-shrink-0" />
                 アジェンダがログ一覧に正常保存されました！
               </div>
               {onGoToMinutes && savedRecordId && (
                 <button
                   type="button"
                   onClick={() => onGoToMinutes(savedRecordId)}
-                  className="px-3 py-1.5 bg-[#283136] hover:bg-[#1c2226] text-white rounded-lg text-xs font-bold flex items-center gap-1 transition"
+                  className="px-3 py-1.5 bg-[#283136] hover:bg-[#1c2226] text-white rounded-lg text-xs sm:text-sm font-bold flex items-center gap-1 transition"
                 >
                   このアジェンダで議事録を作成 <ArrowRight className="w-3.5 h-3.5" />
                 </button>
@@ -733,7 +733,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
             <button
               onClick={handleSave}
               disabled={saveStatus === "saving"}
-              className={`px-5 py-2.5 font-bold text-xs md:text-sm rounded-xl shadow-sm flex items-center gap-2 transition ${
+              className={`px-5 py-2.5 font-bold text-xs sm:text-sm rounded-xl shadow-sm flex items-center gap-2 transition ${
                 saveStatus === "saved"
                   ? "bg-slate-700 text-white hover:bg-slate-800"
                   : "bg-[#283136] hover:bg-[#1c2226] text-white"
@@ -756,19 +756,19 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
             </button>
             <button
               onClick={handleOpenGoogleCalendar}
-              className="px-4 py-2.5 bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs md:text-sm rounded-xl flex items-center gap-2 transition shadow-sm"
+              className="px-4 py-2.5 bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm rounded-xl flex items-center gap-2 transition shadow-sm"
             >
               <CalendarPlus className="w-4 h-4" /> Googleカレンダーに登録
             </button>
             <button
               onClick={handleCopy}
-              className="px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold text-xs md:text-sm rounded-xl flex items-center gap-2 transition"
+              className="px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold text-xs sm:text-sm rounded-xl flex items-center gap-2 transition"
             >
               <Copy className="w-4 h-4" /> テキストをコピー
             </button>
             <button
               onClick={() => window.print()}
-              className="px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold text-xs md:text-sm rounded-xl flex items-center gap-2 transition"
+              className="px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold text-xs sm:text-sm rounded-xl flex items-center gap-2 transition"
             >
               <Printer className="w-4 h-4" /> 印刷
             </button>
