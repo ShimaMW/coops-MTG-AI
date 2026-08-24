@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { MeetingRecord, UserProfile, MinutesDetails, AgendaDetails } from "@/lib/types";
@@ -87,15 +87,15 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
     return true;
   });
 
-  // 手動でGSSから最新データを再同期
+  // 手動で最新データを再同期
   const handleManualSync = async () => {
     setIsSyncing(true);
     try {
       await syncFromGSS();
       onRefresh();
-      showToast("クラウド（GSS）から最新データを取得しました ✓");
+      showToast("最新のデータを取得しました ✓");
     } catch (err: any) {
-      showToast("同期エラー: " + err.message, "error");
+      showToast("取得エラー: " + err.message, "error");
     } finally {
       setIsSyncing(false);
     }
@@ -127,7 +127,6 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
 
   const handleStartEdit = async () => {
     if (!selectedRecord) return;
-    // 最新データをフェッチしてから編集フォームに適用（競合防止）
     setIsSyncing(true);
     try {
       const latestList = await syncFromGSS();
@@ -186,7 +185,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
         if (res.success) {
           setSelectedRecord(res.data);
           setIsEditing(false);
-          showToast("議事録の変更を保存しました（GSS同期完了） ✓", "success");
+          showToast("議事録を保存しました ✓", "success");
           onRefresh();
         } else {
           showToast("保存エラー: " + (res.error || res.message), "error");
@@ -210,7 +209,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
         if (res.success) {
           setSelectedRecord(res.data);
           setIsEditing(false);
-          showToast("アジェンダの変更を保存しました（GSS同期完了） ✓", "success");
+          showToast("アジェンダを保存しました ✓", "success");
           onRefresh();
         } else {
           showToast("保存エラー: " + res.error, "error");
@@ -225,7 +224,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* フィルタ & 検索バー & GSS再同期ボタン */}
+      {/* フィルタ & 検索バー & 再同期ボタン */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex flex-wrap items-center gap-3 no-print">
         <div className="flex-1 min-w-[200px] relative">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -266,16 +265,16 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
           ))}
         </select>
 
-        {/* GSSクラウド最新データ再同期ボタン */}
+        {/* 最新データ再取得ボタン */}
         <button
           type="button"
           onClick={handleManualSync}
           disabled={isSyncing}
           className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition border border-slate-300"
-          title="Googleスプレッドシートから最新データを再取得"
+          title="最新の情報を再取得"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin text-slate-800" : "text-slate-600"}`} />
-          <span>{isSyncing ? "同期中..." : "クラウド最新化"}</span>
+          <span>{isSyncing ? "更新中..." : "最新の情報に更新"}</span>
         </button>
       </div>
 
@@ -730,7 +729,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                     disabled={isSyncing}
                     className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm"
                   >
-                    <Edit3 className="w-3.5 h-3.5" /> この内容を直接編集する
+                    <Edit3 className="w-3.5 h-3.5" /> 編集する
                   </button>
                 ) : (
                   <div className="flex items-center gap-2">
@@ -746,7 +745,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                         </>
                       ) : (
                         <>
-                          <Save className="w-3.5 h-3.5" /> 変更を保存（GSS同期）
+                          <Save className="w-3.5 h-3.5" /> 変更を保存
                         </>
                       )}
                     </button>

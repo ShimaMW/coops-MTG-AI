@@ -342,7 +342,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
           {/* 日付入力 */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
-              <span>📅 会議日（テキスト＆カレンダー選択）</span>
+              <span>📅 会議日</span>
               <div className="flex gap-1">
                 <button
                   type="button"
@@ -435,7 +435,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">👥 参加者（自由入力）</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">👥 参加者</label>
             <input
               type="text"
               placeholder="例：佐藤、田中、高橋、渡辺"
@@ -446,7 +446,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
           </div>
         </div>
 
-        {/* ── 予定時間（すっきり一体型UI） ── */}
+        {/* ── 予定時間 ── */}
         <div className="mb-4">
           <div className="flex items-center justify-between mb-1">
             <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
@@ -464,7 +464,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
               className="text-[11px] text-slate-600 hover:text-slate-900 font-medium flex items-center gap-1"
             >
               <Edit3 className="w-3 h-3" />
-              {isManualDuration ? "時間ピッカーに戻す" : "自由テキストで入力"}
+              {isManualDuration ? "時間選択に戻す" : "手入力に切り替え"}
             </button>
           </div>
 
@@ -513,7 +513,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
 
               {/* クイック所要時間ボタン */}
               <div className="flex items-center gap-1.5">
-                <span className="text-[11px] text-slate-400">所要時間でセット:</span>
+                <span className="text-[11px] text-slate-400">クイック設定:</span>
                 {[
                   { label: "30分", mins: 30 },
                   { label: "45分", mins: 45 },
@@ -541,14 +541,14 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
           <div className="flex flex-col h-full">
             <div className="mb-2">
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                💡 介護事業所向け 議題テンプレート
+                💡 議題テンプレート
               </label>
               <select
                 value={selectedTemplateId}
                 onChange={(e) => handleSelectTemplate(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs md:text-sm text-slate-800 font-medium outline-none focus:border-slate-600"
               >
-                <option value="">― テンプレートを選択して議題に流し込む ―</option>
+                <option value="">― テンプレートを選択 ―</option>
                 {AGENDA_TEMPLATES.map((tmpl) => (
                   <option key={tmpl.id} value={tmpl.id}>
                     {tmpl.name}
@@ -558,7 +558,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
             </div>
 
             <label className="block text-xs font-bold text-slate-700 mb-1">
-              📝 今回話したいこと・背景・議題メモ
+              📝 議題メモ・共有事項
             </label>
             <textarea
               rows={5}
@@ -569,16 +569,16 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
             ></textarea>
           </div>
 
-          {/* 右：事前資料・写真の添付（複数対応） */}
+          {/* 右：事前資料・写真の添付 */}
           <div className="flex flex-col h-full">
             <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
               <Paperclip className="w-3.5 h-3.5 text-slate-600" />
-              📎 事前資料・写真の添付（複数ファイル可・PDF/Word/写真）
+              📎 事前資料・添付ファイル
             </label>
             <div className="flex-1 flex flex-col">
               <MediaUploader
                 title="事前資料を選択"
-                subtitle="PDF・Word・ホワイトボード写真・企画メモ等 (.pdf, .jpg, .txt)"
+                subtitle="PDF・Word・画像等 (.pdf, .docx, .jpg)"
                 accept="image/*,application/pdf,.pdf,text/plain,.txt,.md,.csv,.doc,.docx"
                 allowMultiple={true}
                 initialFiles={attachmentFiles}

@@ -314,7 +314,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
             className="mt-1 px-4 py-1.5 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold text-xs rounded-xl shadow-2xs flex items-center gap-1.5 transition"
           >
             <FolderOpen className="w-3.5 h-3.5 text-slate-700" />
-            ファイルを選択（複数可）
+            ファイルを選択
           </button>
         </div>
       )}

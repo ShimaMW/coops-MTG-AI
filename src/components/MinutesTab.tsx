@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect } from "react";
 import { UserProfile, MeetingRecord, MinutesDetails, UploadedFileItem } from "@/lib/types";
@@ -431,7 +431,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             {/* 日付入力 */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
-                <span>📅 会議日（テキスト＆カレンダー選択）</span>
+                <span>📅 会議日</span>
                 <div className="flex gap-1">
                   <button
                     type="button"
@@ -515,7 +515,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">👥 参加者（自由入力）</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">👥 参加者</label>
               <input
                 type="text"
                 placeholder="例：佐藤、田中、高橋、渡辺"
@@ -543,7 +543,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-5">
           <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
             <Mic className="w-5 h-5 text-slate-700" />
-            ステップ 2: 音声データの提出 / ブラウザ録音 ➔ 文字起こし
+            ステップ 2: 会議音声・メモの入力
           </h2>
 
           {/* Step 2 説明アコーディオン */}
@@ -569,12 +569,12 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
             <div className="flex flex-col h-full">
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                📱 スマホのボイスメモ（iPhone .m4a / Androidレコーダー）
+                📱 ボイスメモ・録音ファイル
               </label>
               <div className="flex-1 flex flex-col">
                 <MediaUploader
                   title="ボイスメモを選択"
-                  subtitle="ボイスメモ (.m4a, .mp3, .wav, .aac)"
+                  subtitle="録音ファイル (.m4a, .mp3, .wav, .aac)"
                   accept="audio/*,.m4a,.mp3,.wav,.aac,.webm"
                   allowMultiple={false}
                   onFileLoaded={(data) => {
@@ -596,7 +596,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
 
             <div className="flex flex-col h-full">
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                🎙️ ブラウザで今すぐ録音（スリープ防止）
+                🎙️ マイクで直接録音
               </label>
               <div className="flex-1 flex flex-col">
                 <AudioRecorder
@@ -619,12 +619,12 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
           {/* 文字起こしプレビュー & 手動メモエリア */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
-              <span>📝 文字起こしテキスト / 音声の要点（音声なしで手動入力も可）</span>
+              <span>📝 文字起こし・メモ</span>
               <span className="text-[11px] text-slate-400 font-normal">自由に加筆・修正できます</span>
             </label>
             <textarea
               rows={5}
-              placeholder="リアルタイム録音の文字起こし結果がここに表示されます。また、音声ファイルがない場合はここに会議の発言や要点を直接入力してください。"
+              placeholder="録音データの文字起こし結果がここに表示されます。音声ファイルがない場合は、会議の要点やメモを直接入力してください。"
               value={transcriptPreview}
               onChange={(e) => setTranscriptPreview(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition leading-relaxed font-mono"
@@ -645,7 +645,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
               onClick={() => setStep(3)}
               className="px-6 py-2.5 bg-[#283136] hover:bg-[#1c2226] text-white font-bold text-sm rounded-xl shadow-md flex items-center gap-2 transition"
             >
-              次へ：資料写真・指示 <ArrowRight className="w-4 h-4" />
+              次へ：資料添付・指示 <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -656,7 +656,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-5">
           <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
             <ImageIcon className="w-5 h-5 text-slate-700" />
-            ステップ 3: 会議資料（写真・PDF・メモ）の共有 ＆ AIへの指示
+            ステップ 3: 会議資料の共有 ＆ 指示
           </h2>
 
           {/* Step 3 説明アコーディオン */}
@@ -678,12 +678,12 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             {/* 複数写真・PDFアップローダー */}
             <div className="flex flex-col h-full">
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                📷 ホワイトボード写真・配布PDF・メモ（複数ファイル可・OCR解析）
+                📷 会議資料・写真・PDF
               </label>
               <div className="flex-1 flex flex-col">
                 <MediaUploader
                   title="会議資料・写真を選択"
-                  subtitle="ホワイトボード写真・配布PDF・メモ (.jpg, .pdf, .txt)"
+                  subtitle="ホワイトボード写真・配布PDF等 (.jpg, .pdf, .docx)"
                   accept="image/*,application/pdf,.pdf,text/plain,.txt,.md,.csv,.doc,.docx"
                   allowMultiple={true}
                   initialFiles={attachmentFiles}
