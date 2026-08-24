@@ -467,9 +467,8 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
       </div>
 
       {/* ── STEP 1: 会議基本情報 ── */}
-      {/* ── STEP 1: 会議基本情報 ── */}
       {step === 1 && (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
+        <div className="bg-[#f4f6f8] rounded-2xl p-6 shadow-sm border border-slate-300/80 space-y-4">
           <h2 className="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
             <Calendar className="w-5 h-5 text-slate-700" />
             ステップ 1: 会議基本情報
@@ -626,7 +625,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
 
       {/* ── STEP 2: 音声データの提出 / 録音 ➔ 文字起こし ── */}
       {step === 2 && (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-5">
+        <div className="bg-[#f4f6f8] rounded-2xl p-6 shadow-sm border border-slate-300/80 space-y-5">
           <h2 className="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
             <Mic className="w-5 h-5 text-slate-700" />
             ステップ 2: 会議音声・メモの入力
@@ -764,7 +763,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
 
       {/* ── STEP 3: 会議資料（複数写真・PDF）/ テキストメモの共有と指示 ── */}
       {step === 3 && (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-5">
+        <div className="bg-[#f4f6f8] rounded-2xl p-6 shadow-sm border border-slate-300/80 space-y-5">
           <h2 className="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
             <ImageIcon className="w-5 h-5 text-slate-700" />
             ステップ 3: 会議資料の共有 ＆ 指示
@@ -925,8 +924,8 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
 
       {/* ── STEP 4: 議事録完成 & 編集・出力（洗練された4セクション構成） ── */}
       {step === 4 && minutesResult && (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+        <div className="bg-[#f4f6f8] rounded-2xl p-6 shadow-sm border border-slate-300/80 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
             <div>
               <h2 className="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-slate-700" />

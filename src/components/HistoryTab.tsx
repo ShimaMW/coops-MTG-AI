@@ -248,7 +248,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
       />
 
       {/* フィルタ & 検索バー & 再同期ボタン */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex flex-wrap items-center gap-3 no-print">
+      <div className="bg-[#f4f6f8] rounded-2xl p-4 shadow-sm border border-slate-300/80 flex flex-wrap items-center gap-3 no-print">
         <div className="flex-1 min-w-[200px] relative">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
@@ -256,14 +256,14 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
             placeholder="キーワード・参加者・内容で検索..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm outline-none focus:border-slate-600 focus:bg-white transition"
+            className="w-full pl-9 pr-3.5 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm outline-none focus:border-slate-600 transition"
           />
         </div>
 
         <select
           value={filterDept}
           onChange={(e) => setFilterDept(e.target.value)}
-          className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm outline-none focus:border-slate-600 focus:bg-white transition font-medium"
+          className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm outline-none focus:border-slate-600 transition font-medium"
         >
           <option value="all">すべての事業所・部署</option>
           {departments.map((d) => (
@@ -276,7 +276,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
         <select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
-          className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm outline-none focus:border-slate-600 focus:bg-white transition font-medium"
+          className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm outline-none focus:border-slate-600 transition font-medium"
         >
           <option value="all">すべての会議種別</option>
           {DEFAULT_MEETING_TYPES.map((t) => (
@@ -291,7 +291,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
           type="button"
           onClick={handleManualSync}
           disabled={isSyncing}
-          className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm rounded-xl flex items-center gap-1.5 transition border border-slate-300"
+          className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs sm:text-sm rounded-xl flex items-center gap-1.5 transition border border-slate-300 shadow-2xs"
           title="最新の情報を再取得"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin text-slate-800" : "text-slate-600"}`} />
@@ -300,8 +300,8 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
       </div>
 
       {/* ログ一覧テーブル */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+      <div className="bg-[#f4f6f8] rounded-2xl shadow-sm border border-slate-300/80 overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
           <h3 className="text-sm sm:text-base font-bold text-slate-800 flex items-center gap-2">
             <Table className="w-4 h-4 text-slate-700" />
             アジェンダ・議事録 ログ一覧（{filteredRecords.length}件）

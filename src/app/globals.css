@@ -7,11 +7,11 @@
 :root {
   --background: #353f45;
   --foreground: #1e293b;
-  --card: #ffffff;
-  --card-sub: #f8fafc;
+  --card: #f4f6f8;
+  --card-sub: #ffffff;
   --primary: #353f45;
   --primary-hover: #262e33;
-  --border: #e2e8f0;
+  --border: #cbd5e1;
 }
 
 body {
