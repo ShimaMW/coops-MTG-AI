@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
-import { MeetingRecord, UserProfile } from "@/lib/types";
-import { DEFAULT_DEPARTMENTS, DEFAULT_MEETING_TYPES, deleteMeetingRecord } from "@/lib/storage";
+import { MeetingRecord, UserProfile, MinutesDetails, AgendaDetails } from "@/lib/types";
+import { DEFAULT_DEPARTMENTS, DEFAULT_MEETING_TYPES, deleteMeetingRecord, saveMinutesRecord, saveAgendaRecord } from "@/lib/storage";
 import { downloadMeetingDocx, getMinutesPlainText, getAgendaPlainText, getChatSummaryText, formatJPDate } from "@/lib/exportUtils";
 import {
   Table,
@@ -23,6 +23,8 @@ import {
   ListTodo,
   MessageSquare,
   Calendar,
+  Edit3,
+  Save,
 } from "lucide-react";
 
 interface HistoryTabProps {
@@ -46,6 +48,13 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
   const [selectedRecord, setSelectedRecord] = useState<MeetingRecord | null>(null);
   const [modalTab, setModalTab] = useState<"minutes" | "agenda">("minutes");
   const [isFullScreen, setIsFullScreen] = useState(false);
+
+  // 編集モード管理
+  const [isEditing, setIsEditing] = useState(false);
+  const [editParticipants, setEditParticipants] = useState("");
+  const [editMinutes, setEditMinutes] = useState<MinutesDetails | null>(null);
+  const [editAgenda, setEditAgenda] = useState<AgendaDetails | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const isAdmin = currentUser.role === "admin";
 
@@ -73,6 +82,80 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
     setSelectedRecord(rec);
     setModalTab(tab);
     setIsFullScreen(false);
+    setIsEditing(false);
+    setEditParticipants(rec.participants || "");
+    setEditMinutes(rec.minutes ? { ...rec.minutes } : null);
+    setEditAgenda(rec.agenda ? { ...rec.agenda } : null);
+  };
+
+  const handleStartEdit = () => {
+    if (!selectedRecord) return;
+    setEditParticipants(selectedRecord.participants || "");
+    setEditMinutes(selectedRecord.minutes ? { ...selectedRecord.minutes } : null);
+    setEditAgenda(selectedRecord.agenda ? { ...selectedRecord.agenda } : null);
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    if (!selectedRecord) return;
+    setEditParticipants(selectedRecord.participants || "");
+    setEditMinutes(selectedRecord.minutes ? { ...selectedRecord.minutes } : null);
+    setEditAgenda(selectedRecord.agenda ? { ...selectedRecord.agenda } : null);
+    setIsEditing(false);
+  };
+
+  const handleSaveEdit = () => {
+    if (!selectedRecord) return;
+    setIsSaving(true);
+
+    try {
+      if (modalTab === "minutes" && editMinutes) {
+        const res = saveMinutesRecord({
+          recordId: selectedRecord.id,
+          meetingDate: selectedRecord.meetingDate,
+          dept: selectedRecord.dept,
+          meetingType: selectedRecord.meetingType,
+          participants: editParticipants,
+          minutes: editMinutes,
+          createdById: selectedRecord.createdById,
+          version: selectedRecord.version,
+        });
+
+        if (res.success) {
+          setSelectedRecord(res.data);
+          setIsEditing(false);
+          showToast("議事録の変更を保存しました（GSS同期完了） ✓", "success");
+          onRefresh();
+        } else {
+          showToast("保存エラー: " + (res.error || res.message), "error");
+        }
+      } else if (modalTab === "agenda" && editAgenda) {
+        const res = saveAgendaRecord({
+          id: selectedRecord.id,
+          meetingDate: selectedRecord.meetingDate,
+          dept: selectedRecord.dept,
+          meetingType: selectedRecord.meetingType,
+          participants: editParticipants,
+          duration: selectedRecord.duration,
+          userTopics: selectedRecord.userTopics,
+          agenda: editAgenda,
+          createdById: selectedRecord.createdById,
+        });
+
+        if (res.success) {
+          setSelectedRecord(res.data);
+          setIsEditing(false);
+          showToast("アジェンダの変更を保存しました（GSS同期完了） ✓", "success");
+          onRefresh();
+        } else {
+          showToast("保存エラー: " + res.error, "error");
+        }
+      }
+    } catch (err: any) {
+      showToast("保存処理中にエラーが発生しました: " + err.message, "error");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -180,7 +263,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                             onClick={() => openModal(rec, "agenda")}
                             className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded-lg font-bold transition shadow-xs"
                           >
-                            表示
+                            表示・編集
                           </button>
                         ) : (
                           <span className="text-slate-300">―</span>
@@ -193,7 +276,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                             onClick={() => openModal(rec, "minutes")}
                             className="px-2.5 py-1 bg-[#283136] hover:bg-[#1c2226] text-white rounded-lg font-bold transition shadow-xs"
                           >
-                            表示
+                            表示・編集
                           </button>
                         ) : (
                           <span className="text-slate-300">―</span>
@@ -229,10 +312,14 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
         </div>
       </div>
 
-      {/* ── 詳細閲覧モーダル（大画面ワイド＆フルスクリーン対応・外側クリックで閉じる） ── */}
+      {/* ── 詳細閲覧・編集モーダル（外側クリックで閉じる対応） ── */}
       {selectedRecord && (
         <div
-          onClick={() => setSelectedRecord(null)}
+          onClick={() => {
+            if (isEditing && !confirm("編集中の内容を破棄して閉じますか？")) return;
+            setSelectedRecord(null);
+            setIsEditing(false);
+          }}
           className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto cursor-pointer"
         >
           <div
@@ -251,14 +338,32 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                 </div>
                 <div>
                   <h3 className="font-bold text-sm md:text-base text-white flex items-center gap-2">
-                    <span>{modalTab === "minutes" ? "議事録確認" : "事前アジェンダ確認"}</span>
+                    <span>{modalTab === "minutes" ? "議事録確認・編集" : "事前アジェンダ確認・編集"}</span>
+                    {isEditing && (
+                      <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-400/40 text-[10px] font-bold rounded">
+                        編集中
+                      </span>
+                    )}
                     <span className="text-xs font-normal text-slate-300">
                       ｜ {selectedRecord.dept} {selectedRecord.meetingType}
                     </span>
                   </h3>
                   <div className="text-[11px] text-slate-300 mt-0.5 flex items-center gap-3">
                     <span>📅 開催日: {formatJPDate(selectedRecord.meetingDate)}</span>
-                    <span>👥 参加者: {selectedRecord.participants || "未指定"}</span>
+                    {!isEditing ? (
+                      <span>👥 参加者: {selectedRecord.participants || "未指定"}</span>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <span>👥 参加者:</span>
+                        <input
+                          type="text"
+                          value={editParticipants}
+                          onChange={(e) => setEditParticipants(e.target.value)}
+                          className="bg-white/20 border border-white/30 rounded px-2 py-0.5 text-xs text-white outline-none focus:bg-white/30"
+                          placeholder="参加者名"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -274,7 +379,11 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                   {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                 </button>
                 <button
-                  onClick={() => setSelectedRecord(null)}
+                  onClick={() => {
+                    if (isEditing && !confirm("編集中の内容を破棄して閉じますか？")) return;
+                    setSelectedRecord(null);
+                    setIsEditing(false);
+                  }}
                   className="p-1.5 hover:bg-white/10 text-slate-300 hover:text-white rounded-lg transition"
                 >
                   <X className="w-5 h-5" />
@@ -286,40 +395,59 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
             {selectedRecord.agenda && selectedRecord.minutes && (
               <div className="flex bg-slate-100 p-1.5 border-b border-slate-200">
                 <button
-                  onClick={() => setModalTab("minutes")}
+                  onClick={() => {
+                    if (isEditing && !confirm("タブを切り替えると編集内容がリセットされます。切り替えますか？")) return;
+                    setModalTab("minutes");
+                    setIsEditing(false);
+                  }}
                   className={`flex-1 py-2 text-xs font-bold rounded-xl transition ${
                     modalTab === "minutes"
                       ? "bg-white text-slate-900 shadow-sm"
                       : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
-                  📝 議事録を見る
+                  📝 議事録を見る・編集
                 </button>
                 <button
-                  onClick={() => setModalTab("agenda")}
+                  onClick={() => {
+                    if (isEditing && !confirm("タブを切り替えると編集内容がリセットされます。切り替えますか？")) return;
+                    setModalTab("agenda");
+                    setIsEditing(false);
+                  }}
                   className={`flex-1 py-2 text-xs font-bold rounded-xl transition ${
                     modalTab === "agenda"
                       ? "bg-white text-slate-900 shadow-sm"
                       : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
-                  📋 事前アジェンダを見る
+                  📋 事前アジェンダを見る・編集
                 </button>
               </div>
             )}
 
-            {/* モーダル本文（トンマナ統一・すっきりスレートカード） */}
+            {/* モーダル本文（閲覧 / 編集モード） */}
             <div className="p-6 overflow-y-auto space-y-4 text-xs md:text-sm leading-relaxed text-slate-800 bg-white">
-              {modalTab === "minutes" && selectedRecord.minutes && (
+              {modalTab === "minutes" && (selectedRecord.minutes || editMinutes) && (
                 <div className="space-y-4">
                   {/* 1. 会議要約 */}
                   <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
                     <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200">
                       📌 1. 会議要約（ハイライト）
                     </div>
-                    <p className="whitespace-pre-wrap text-slate-700 leading-relaxed font-sans">
-                      {selectedRecord.minutes.summary}
-                    </p>
+                    {!isEditing ? (
+                      <p className="whitespace-pre-wrap text-slate-700 leading-relaxed font-sans">
+                        {selectedRecord.minutes?.summary}
+                      </p>
+                    ) : (
+                      <textarea
+                        rows={4}
+                        value={editMinutes?.summary || ""}
+                        onChange={(e) =>
+                          setEditMinutes({ ...(editMinutes || selectedRecord.minutes!), summary: e.target.value })
+                        }
+                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
+                      />
+                    )}
                   </div>
 
                   {/* 2. 議論内容・経緯 */}
@@ -328,12 +456,27 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                       <MessageSquare className="w-4 h-4 text-slate-600" />
                       💡 2. 議論内容・経緯（各議題ごとの発言・流れ）
                     </div>
-                    <p className="whitespace-pre-wrap font-mono text-slate-700 leading-relaxed">
-                      {selectedRecord.minutes.discussions ||
-                        [selectedRecord.minutes.agenda_items, selectedRecord.minutes.key_discussions]
-                          .filter(Boolean)
-                          .join("\n\n")}
-                    </p>
+                    {!isEditing ? (
+                      <p className="whitespace-pre-wrap font-mono text-slate-700 leading-relaxed">
+                        {selectedRecord.minutes?.discussions ||
+                          [selectedRecord.minutes?.agenda_items, selectedRecord.minutes?.key_discussions]
+                            .filter(Boolean)
+                            .join("\n\n")}
+                      </p>
+                    ) : (
+                      <textarea
+                        rows={8}
+                        value={
+                          editMinutes?.discussions ||
+                          [editMinutes?.agenda_items, editMinutes?.key_discussions].filter(Boolean).join("\n\n") ||
+                          ""
+                        }
+                        onChange={(e) =>
+                          setEditMinutes({ ...(editMinutes || selectedRecord.minutes!), discussions: e.target.value })
+                        }
+                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed font-mono"
+                      />
+                    )}
                   </div>
 
                   {/* 3. 決定事項・ToDo */}
@@ -342,9 +485,20 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                       <ListTodo className="w-4 h-4 text-slate-700" />
                       ✨ 3. 決定事項・ToDo（担当・期日）
                     </div>
-                    <p className="whitespace-pre-wrap font-mono text-slate-800 leading-relaxed font-medium">
-                      {selectedRecord.minutes.action_plans}
-                    </p>
+                    {!isEditing ? (
+                      <p className="whitespace-pre-wrap font-mono text-slate-800 leading-relaxed font-medium">
+                        {selectedRecord.minutes?.action_plans}
+                      </p>
+                    ) : (
+                      <textarea
+                        rows={6}
+                        value={editMinutes?.action_plans || ""}
+                        onChange={(e) =>
+                          setEditMinutes({ ...(editMinutes || selectedRecord.minutes!), action_plans: e.target.value })
+                        }
+                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed font-mono font-medium"
+                      />
+                    )}
                   </div>
 
                   {/* 4. 次回検討・特記事項 */}
@@ -353,28 +507,60 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                       <Calendar className="w-4 h-4 text-slate-600" />
                       📅 4. 次回検討・特記事項（宿題・理念・助言）
                     </div>
-                    <p className="whitespace-pre-wrap text-slate-700 leading-relaxed">
-                      {selectedRecord.minutes.next_steps ||
-                        [
-                          selectedRecord.minutes.culture_notes,
-                          selectedRecord.minutes.next_agenda,
-                          selectedRecord.minutes.facilitator_feedback,
-                        ]
-                          .filter(Boolean)
-                          .join("\n\n")}
-                    </p>
+                    {!isEditing ? (
+                      <p className="whitespace-pre-wrap text-slate-700 leading-relaxed">
+                        {selectedRecord.minutes?.next_steps ||
+                          [
+                            selectedRecord.minutes?.culture_notes,
+                            selectedRecord.minutes?.next_agenda,
+                            selectedRecord.minutes?.facilitator_feedback,
+                          ]
+                            .filter(Boolean)
+                            .join("\n\n")}
+                      </p>
+                    ) : (
+                      <textarea
+                        rows={5}
+                        value={
+                          editMinutes?.next_steps ||
+                          [
+                            editMinutes?.culture_notes,
+                            editMinutes?.next_agenda,
+                            editMinutes?.facilitator_feedback,
+                          ]
+                            .filter(Boolean)
+                            .join("\n\n") ||
+                          ""
+                        }
+                        onChange={(e) =>
+                          setEditMinutes({ ...(editMinutes || selectedRecord.minutes!), next_steps: e.target.value })
+                        }
+                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
+                      />
+                    )}
                   </div>
                 </div>
               )}
 
-              {modalTab === "agenda" && selectedRecord.agenda && (
+              {modalTab === "agenda" && (selectedRecord.agenda || editAgenda) && (
                 <div className="space-y-4">
                   <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
                     <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200">
                       <Target className="w-4 h-4 text-slate-600" />
                       🎯 目的（Purpose）
                     </div>
-                    <p className="whitespace-pre-wrap text-slate-700 leading-relaxed">{selectedRecord.agenda.purpose}</p>
+                    {!isEditing ? (
+                      <p className="whitespace-pre-wrap text-slate-700 leading-relaxed">{selectedRecord.agenda?.purpose}</p>
+                    ) : (
+                      <textarea
+                        rows={2}
+                        value={editAgenda?.purpose || ""}
+                        onChange={(e) =>
+                          setEditAgenda({ ...(editAgenda || selectedRecord.agenda!), purpose: e.target.value })
+                        }
+                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
+                      />
+                    )}
                   </div>
 
                   <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
@@ -382,16 +568,38 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                       <FileCheck className="w-4 h-4 text-slate-600" />
                       🏁 達成したい成果（Outcome）
                     </div>
-                    <p className="whitespace-pre-wrap text-slate-700 leading-relaxed">{selectedRecord.agenda.outcome}</p>
+                    {!isEditing ? (
+                      <p className="whitespace-pre-wrap text-slate-700 leading-relaxed">{selectedRecord.agenda?.outcome}</p>
+                    ) : (
+                      <textarea
+                        rows={2}
+                        value={editAgenda?.outcome || ""}
+                        onChange={(e) =>
+                          setEditAgenda({ ...(editAgenda || selectedRecord.agenda!), outcome: e.target.value })
+                        }
+                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
+                      />
+                    )}
                   </div>
 
-                  {selectedRecord.agenda.review && (
+                  {(selectedRecord.agenda?.review || isEditing) && (
                     <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
                       <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200">
                         <RotateCcw className="w-4 h-4 text-slate-600" />
                         🔄 前回の振り返り
                       </div>
-                      <p className="whitespace-pre-wrap text-slate-700 leading-relaxed">{selectedRecord.agenda.review}</p>
+                      {!isEditing ? (
+                        <p className="whitespace-pre-wrap text-slate-700 leading-relaxed">{selectedRecord.agenda?.review}</p>
+                      ) : (
+                        <textarea
+                          rows={2}
+                          value={editAgenda?.review || ""}
+                          onChange={(e) =>
+                            setEditAgenda({ ...(editAgenda || selectedRecord.agenda!), review: e.target.value })
+                          }
+                          className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
+                        />
+                      )}
                     </div>
                   )}
 
@@ -399,64 +607,128 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                     <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200">
                       📋 各議題の詳細
                     </div>
-                    <p className="whitespace-pre-wrap font-mono text-slate-700 leading-relaxed">{selectedRecord.agenda.agenda_items}</p>
+                    {!isEditing ? (
+                      <p className="whitespace-pre-wrap font-mono text-slate-700 leading-relaxed">{selectedRecord.agenda?.agenda_items}</p>
+                    ) : (
+                      <textarea
+                        rows={8}
+                        value={editAgenda?.agenda_items || ""}
+                        onChange={(e) =>
+                          setEditAgenda({ ...(editAgenda || selectedRecord.agenda!), agenda_items: e.target.value })
+                        }
+                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed font-mono"
+                      />
+                    )}
                   </div>
 
                   <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
                     <div className="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5 pb-1 border-b border-slate-200">
                       🏁 クロージング
                     </div>
-                    <p className="whitespace-pre-wrap text-slate-700 leading-relaxed">{selectedRecord.agenda.closing}</p>
+                    {!isEditing ? (
+                      <p className="whitespace-pre-wrap text-slate-700 leading-relaxed">{selectedRecord.agenda?.closing}</p>
+                    ) : (
+                      <textarea
+                        rows={2}
+                        value={editAgenda?.closing || ""}
+                        onChange={(e) =>
+                          setEditAgenda({ ...(editAgenda || selectedRecord.agenda!), closing: e.target.value })
+                        }
+                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20 leading-relaxed"
+                      />
+                    )}
                   </div>
                 </div>
               )}
             </div>
 
-            {/* フッターアクションバー（トンマナ統一） */}
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-end gap-2.5">
-              {modalTab === "minutes" && selectedRecord.minutes && (
+            {/* フッターアクションバー */}
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2">
+                {!isEditing ? (
+                  <button
+                    onClick={handleStartEdit}
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" /> この内容を直接編集する
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleSaveEdit}
+                      disabled={isSaving}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm"
+                    >
+                      {isSaving ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          保存中...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-3.5 h-3.5" /> 変更を保存（GSS同期）
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={handleCancelEdit}
+                      className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl transition"
+                    >
+                      キャンセル
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {modalTab === "minutes" && selectedRecord.minutes && !isEditing && (
+                  <button
+                    onClick={() => {
+                      const text = getChatSummaryText(selectedRecord);
+                      navigator.clipboard.writeText(text);
+                      showToast("LINE WORKS / チャット用要約をコピーしました 📢");
+                    }}
+                    className="px-3.5 py-2 bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm"
+                  >
+                    <Share2 className="w-3.5 h-3.5" /> LINE WORKS用コピー
+                  </button>
+                )}
+                <button
+                  onClick={() => downloadMeetingDocx(selectedRecord)}
+                  className="px-3.5 py-2 bg-[#283136] hover:bg-[#1c2226] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm"
+                >
+                  <Download className="w-3.5 h-3.5" /> Word保存
+                </button>
                 <button
                   onClick={() => {
-                    const text = getChatSummaryText(selectedRecord);
+                    const text =
+                      modalTab === "minutes"
+                        ? getMinutesPlainText(selectedRecord)
+                        : getAgendaPlainText(selectedRecord);
                     navigator.clipboard.writeText(text);
-                    showToast("LINE WORKS / チャット用要約をコピーしました 📢");
+                    showToast("テキストをコピーしました ✓");
                   }}
-                  className="px-4 py-2 bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm"
+                  className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold text-xs rounded-xl flex items-center gap-1.5 transition"
                 >
-                  <Share2 className="w-3.5 h-3.5" /> LINE WORKS用コピー
+                  <Copy className="w-3.5 h-3.5" /> 全文コピー
                 </button>
-              )}
-              <button
-                onClick={() => downloadMeetingDocx(selectedRecord)}
-                className="px-4 py-2 bg-[#283136] hover:bg-[#1c2226] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm"
-              >
-                <Download className="w-3.5 h-3.5" /> Word保存
-              </button>
-              <button
-                onClick={() => {
-                  const text =
-                    modalTab === "minutes"
-                      ? getMinutesPlainText(selectedRecord)
-                      : getAgendaPlainText(selectedRecord);
-                  navigator.clipboard.writeText(text);
-                  showToast("テキストをコピーしました ✓");
-                }}
-                className="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold text-xs rounded-xl flex items-center gap-1.5 transition"
-              >
-                <Copy className="w-3.5 h-3.5" /> 全文コピー
-              </button>
-              <button
-                onClick={() => window.print()}
-                className="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold text-xs rounded-xl flex items-center gap-1.5 transition"
-              >
-                <Printer className="w-3.5 h-3.5" /> 印刷
-              </button>
-              <button
-                onClick={() => setSelectedRecord(null)}
-                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl transition"
-              >
-                閉じる
-              </button>
+                <button
+                  onClick={() => window.print()}
+                  className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold text-xs rounded-xl flex items-center gap-1.5 transition"
+                >
+                  <Printer className="w-3.5 h-3.5" /> 印刷
+                </button>
+                <button
+                  onClick={() => {
+                    if (isEditing && !confirm("編集中の内容を破棄して閉じますか？")) return;
+                    setSelectedRecord(null);
+                    setIsEditing(false);
+                  }}
+                  className="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl transition"
+                >
+                  閉じる
+                </button>
+              </div>
             </div>
           </div>
         </div>
