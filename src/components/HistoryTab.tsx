@@ -76,21 +76,10 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
 
   const isAdmin = currentUser.role === "admin";
 
-  // 権限フィルタ & 絞り込み
+  // 絞り込みフィルター（全スタッフが全部署の公開ログをオープンに参照可能）
   const filteredRecords = meetingRecords.filter((rec) => {
-    // 1. 一般スタッフは自部署のみ & 管理者限定(isConfidential)は非表示
-    if (!isAdmin) {
-      if (rec.dept !== currentUser.department) return false;
-      if (rec.isConfidential) return false;
-    }
-
-    // 2. 管理者の部署フィルター
-    if (isAdmin && filterDept !== "all" && rec.dept !== filterDept) return false;
-
-    // 3. 会議種別フィルター
+    if (filterDept !== "all" && rec.dept !== filterDept) return false;
     if (filterType !== "all" && rec.meetingType !== filterType) return false;
-
-    // 4. 検索クエリ
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       const content = `${rec.meetingDate} ${rec.dept} ${rec.meetingType} ${rec.participants} ${rec.agenda?.purpose || ""} ${rec.minutes?.summary || ""}`.toLowerCase();
@@ -249,20 +238,18 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
           />
         </div>
 
-        {isAdmin && (
-          <select
-            value={filterDept}
-            onChange={(e) => setFilterDept(e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs md:text-sm outline-none focus:border-slate-600 focus:bg-white transition font-medium"
-          >
-            <option value="all">すべての事業所・部署</option>
-            {departments.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
-        )}
+        <select
+          value={filterDept}
+          onChange={(e) => setFilterDept(e.target.value)}
+          className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs md:text-sm outline-none focus:border-slate-600 focus:bg-white transition font-medium"
+        >
+          <option value="all">すべての事業所・部署</option>
+          {departments.map((d) => (
+            <option key={d} value={d}>
+              {d}
+            </option>
+          ))}
+        </select>
 
         <select
           value={filterType}
@@ -328,16 +315,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                       <td className="py-3 px-4 font-medium whitespace-nowrap">
                         {formatJPDate(rec.meetingDate)}
                       </td>
-                      <td className="py-3 px-4 font-bold text-slate-700">
-                        <div className="flex items-center gap-1.5">
-                          <span>{rec.dept}</span>
-                          {rec.isConfidential && (
-                            <span className="px-1.5 py-0.5 bg-red-100 text-red-700 border border-red-200 rounded text-[10px] font-bold" title="管理者（本部）限定の機密議事録">
-                              🔒 社外秘
-                            </span>
-                          )}
-                        </div>
-                      </td>
+                      <td className="py-3 px-4 font-bold text-slate-700">{rec.dept}</td>
                       <td className="py-3 px-4 text-slate-600">{rec.meetingType}</td>
                       <td className="py-3 px-4 text-slate-500 max-w-[150px] truncate">
                         {rec.participants || "―"}

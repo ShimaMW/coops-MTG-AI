@@ -421,10 +421,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
             <select
               value={dept}
               onChange={(e) => setDept(e.target.value)}
-              disabled={currentUser.role !== "admin"}
-              className={`w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition ${
-                currentUser.role !== "admin" ? "opacity-90 bg-slate-100 cursor-not-allowed" : ""
-              }`}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition"
             >
               {departments.map((d) => (
                 <option key={d} value={d}>
@@ -434,23 +431,6 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
             </select>
           </div>
         </div>
-
-        {/* 管理者専用：機密設定チェックボックス */}
-        {currentUser.role === "admin" && (
-          <div className="mb-4 p-3 bg-amber-50/70 border border-amber-200 rounded-xl flex items-center justify-between">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isConfidential}
-                onChange={(e) => setIsConfidential(e.target.checked)}
-                className="w-4 h-4 rounded text-slate-700 focus:ring-0 cursor-pointer"
-              />
-              <span className="text-xs font-bold text-amber-900">
-                🔒 管理者（本部）限定の機密アジェンダにする（現場スタッフには非表示）
-              </span>
-            </label>
-          </div>
-        )}
 
         {/* 会議種別 & 参加者 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
