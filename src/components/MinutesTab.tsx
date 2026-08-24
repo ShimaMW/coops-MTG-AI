@@ -31,6 +31,36 @@ import {
   ListTodo,
 } from "lucide-react";
 
+// カテゴリ別AIフォーカス指示マスタ
+const FOCUS_OPTION_GROUPS = [
+  {
+    category: "📋 会議進行・ToDo",
+    items: [
+      "決定事項と担当者を重点的にまとめる",
+      "次回の宿題・ToDoを箇条書きで明確にする",
+      "予定アジェンダに縛られず、実際の議論の展開・流れを重視する",
+      "突発的な重要議論も独立した議題として詳しく残す",
+    ],
+  },
+  {
+    category: "🏥 ケア・安全・多職種",
+    items: [
+      "利用者の体調変化・受診対応・特変事項を最優先で整理する",
+      "事故・ヒヤリハットの原因分析と再発防止策を具体化する",
+      "職種別（看護・リハ・介護・ケアマネ）の役割分担を整理する",
+    ],
+  },
+  {
+    category: "💬 トーン・共有・面談",
+    items: [
+      "LINE WORKS等のチャットで即共有できるよう極めて簡潔に要約する",
+      "各スタッフの具体的な発言や意見の対立点を詳しく残す",
+      "スタッフの悩み・課題と今後のフォロー方針を明確化する",
+      "業務改善のアイデアと試行（トライアル）計画を整理する",
+    ],
+  },
+];
+
 interface MinutesTabProps {
   meetingRecords: MeetingRecord[];
   currentUser: UserProfile;
@@ -82,7 +112,8 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
   // Step 3: 複数資料（写真・PDF・メモ）・AI指示
   const [attachmentFiles, setAttachmentFiles] = useState<UploadedFileItem[]>([]);
   const [inputText, setInputText] = useState("");
-  const [aiFocusInstruction, setAiFocusInstruction] = useState("");
+  const [selectedFocusItems, setSelectedFocusItems] = useState<string[]>([]);
+  const [customFocusText, setCustomFocusText] = useState("");
 
   // Step 4: AI生成結果
   const [isLoading, setIsLoading] = useState(false);
@@ -185,12 +216,21 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
         .join("\n\n");
 
       // テキストメモと文字起こし、AI指示を統合
+      const combinedAiFocus = [
+        ...selectedFocusItems.map((item) => `・${item}`),
+        customFocusText.trim(),
+      ]
+        .filter(Boolean)
+        .join("\n");
+
       const combinedInputText = [
         transcriptPreview ? `【音声文字起こし/プレビュー】\n${transcriptPreview}` : "",
         inputText ? `【追加メモ・発言内容】\n${inputText}` : "",
         textFilesContent ? `【添付資料テキスト】\n${textFilesContent}` : "",
-        aiFocusInstruction ? `【AIへのフォーカス指示】\n${aiFocusInstruction}` : "",
-      ].filter(Boolean).join("\n\n");
+        combinedAiFocus ? `【AIへのフォーカス指示・まとめ方】\n${combinedAiFocus}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n");
 
       // 添付画像・PDF配列
       const mediaFiles = attachmentFiles
@@ -366,14 +406,6 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
     navigator.clipboard.writeText(text);
     showToast("LINE WORKS / チャット用要約をコピーしました 📢");
   };
-
-  const focusSuggestions = [
-    "決定事項と担当者を重点的にまとめる",
-    "各スタッフの具体的な発言や意見の対立点を残す",
-    "予定アジェンダに縛られず、実際の議論の展開・流れを重視する",
-    "次回の宿題・ToDoを箇条書きで明確にする",
-    "突発的な重要議論も独立した議題として詳しく残す",
-  ];
 
   const agendaRecords = meetingRecords.filter((r) => r.agenda);
 
@@ -790,30 +822,71 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             </div>
           </div>
 
-          {/* AIへの指示 */}
-          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-            <label className="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
-              <Sliders className="w-3.5 h-3.5 text-slate-600" />
-              🎯 AIへの指示・フォーカスポイント（任意）
-            </label>
-            <input
-              type="text"
-              placeholder="例：決定事項と担当者を重点的にまとめる、議論の対立点を詳しく残す など"
-              value={aiFocusInstruction}
-              onChange={(e) => setAiFocusInstruction(e.target.value)}
-              className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20"
-            />
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {focusSuggestions.map((s) => (
+          {/* AIへの指示（カテゴリ別複数トグル選択 ＋ 自由メモ） */}
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <Sliders className="w-4 h-4 text-slate-700" />
+                🎯 AIへのフォーカス指示・まとめ方（複数選択可能）
+              </label>
+              {selectedFocusItems.length > 0 && (
                 <button
-                  key={s}
                   type="button"
-                  onClick={() => setAiFocusInstruction(s)}
-                  className="px-2 py-0.5 bg-white border border-slate-300 text-slate-700 rounded-full text-[11px] hover:bg-slate-100 transition"
+                  onClick={() => setSelectedFocusItems([])}
+                  className="text-[11px] text-slate-500 hover:text-slate-700 underline"
                 >
-                  + {s}
+                  選択をクリア
                 </button>
+              )}
+            </div>
+
+            {/* カテゴリ別ワンタップ・トグルボタン群 */}
+            <div className="space-y-2">
+              {FOCUS_OPTION_GROUPS.map((group) => (
+                <div key={group.category} className="space-y-1">
+                  <div className="text-[11px] font-bold text-slate-500">{group.category}</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {group.items.map((item) => {
+                      const isSelected = selectedFocusItems.includes(item);
+                      return (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedFocusItems(selectedFocusItems.filter((i) => i !== item));
+                            } else {
+                              setSelectedFocusItems([...selectedFocusItems, item]);
+                            }
+                          }}
+                          className={`px-2.5 py-1 rounded-full text-xs font-medium transition flex items-center gap-1 cursor-pointer border ${
+                            isSelected
+                              ? "bg-[#283136] text-white border-[#283136] shadow-xs font-bold"
+                              : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100 hover:border-slate-400"
+                          }`}
+                        >
+                          <span>{isSelected ? "✓" : "+"}</span>
+                          <span>{item}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               ))}
+            </div>
+
+            {/* 自由追記エリア */}
+            <div className="pt-2 border-t border-slate-200/80">
+              <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                ✏️ その他の自由な追加指示（任意）
+              </label>
+              <input
+                type="text"
+                placeholder="例：〇〇さんの発言を特に詳しく残す、結論の理由を丁寧に記載 など"
+                value={customFocusText}
+                onChange={(e) => setCustomFocusText(e.target.value)}
+                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs md:text-sm outline-none focus:ring-2 focus:ring-slate-500/20"
+              />
             </div>
           </div>
 
