@@ -783,16 +783,30 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             ]}
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
-            {/* 複数写真・PDFアップローダー */}
-            <div className="flex flex-col h-full">
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                📷 会議資料・写真・PDF
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+            {/* 追加テキストメモ（8カラム、広々確保） */}
+            <div className="lg:col-span-8 flex flex-col h-full space-y-1.5">
+              <label className="block text-xs font-bold text-slate-800">
+                📝 追加テキストメモ・補足発言（たっぷり入力可能）
               </label>
-              <div className="flex-1 flex flex-col">
+              <textarea
+                rows={9}
+                placeholder="会議の補足事項や、写真に関するメモ、重要発言があれば自由に入力してください。"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                className="w-full flex-1 min-h-[240px] bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition leading-relaxed resize-y"
+              ></textarea>
+            </div>
+
+            {/* 複数写真・PDFアップローダー（4カラム、コンパクト表示） */}
+            <div className="lg:col-span-4 flex flex-col h-full space-y-1.5">
+              <label className="block text-xs font-bold text-slate-700">
+                📷 会議資料・写真・PDF（任意）
+              </label>
+              <div className="flex-1 flex flex-col min-h-[240px]">
                 <MediaUploader
-                  title="会議資料・写真を選択"
-                  subtitle="ホワイトボード写真・配布PDF等 (.jpg, .pdf, .docx)"
+                  title="資料・写真を選択"
+                  subtitle="ホワイトボード写真・配布PDF等"
                   accept="image/*,application/pdf,.pdf,text/plain,.txt,.md,.csv,.doc,.docx"
                   allowMultiple={true}
                   initialFiles={attachmentFiles}
@@ -805,20 +819,6 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
                   onClear={() => setAttachmentFiles([])}
                 />
               </div>
-            </div>
-
-            {/* 追加テキストメモ */}
-            <div className="flex flex-col h-full">
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                📝 追加テキストメモ・補足事項（任意）
-              </label>
-              <textarea
-                rows={6}
-                placeholder="会議の補足事項や、写真に関するメモがあれば入力してください。"
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                className="w-full flex-1 bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:border-slate-600 focus:bg-white transition leading-relaxed"
-              ></textarea>
             </div>
           </div>
 

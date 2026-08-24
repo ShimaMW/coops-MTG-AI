@@ -469,74 +469,46 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
           </div>
         </div>
 
-        {/* ── 予定時間 ── */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-1">
-            <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-slate-700" />
-              予定時間
-            </label>
-            <button
-              type="button"
-              onClick={() => {
-                if (!isManualDuration) {
-                  setManualDurationText(`${startTime}〜${endTime}`);
-                }
-                setIsManualDuration(!isManualDuration);
-              }}
-              className="text-[11px] text-slate-600 hover:text-slate-900 font-medium flex items-center gap-1"
-            >
-              <Edit3 className="w-3 h-3" />
-              {isManualDuration ? "時間選択に戻す" : "手入力に切り替え"}
-            </button>
-          </div>
+        {/* ── 予定時間（1行スリムバー） ── */}
+        <div className="mb-4 bg-slate-50 border border-slate-200 rounded-xl p-2.5 sm:px-3.5 flex flex-wrap items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5 text-slate-700" /> 予定時間:
+            </span>
 
-          {isManualDuration ? (
-            /* 自由テキストモード */
-            <input
-              type="text"
-              placeholder="例：10:00〜11:30、または 1時間"
-              value={manualDurationText}
-              onChange={(e) => setManualDurationText(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition"
-            />
-          ) : (
-            /* 一体型タイムピッカー */
-            <div className="space-y-2">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50 border border-slate-200 rounded-xl p-3 sm:px-4 sm:py-2.5 gap-2.5">
-                <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-slate-500 font-medium whitespace-nowrap flex-shrink-0">開始</span>
-                    <input
-                      type="time"
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                      className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs sm:text-sm font-bold text-slate-800 outline-none focus:border-slate-600 transition"
-                    />
-                  </div>
-
-                  <span className="text-slate-400 font-bold">〜</span>
-
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-slate-500 font-medium whitespace-nowrap flex-shrink-0">終了</span>
-                    <input
-                      type="time"
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                      className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs sm:text-sm font-bold text-slate-800 outline-none focus:border-slate-600 transition"
-                    />
-                  </div>
-                </div>
-
-                {/* 自動計算された所要時間バッジ */}
-                <div className="self-start sm:self-auto bg-slate-200 text-slate-800 border border-slate-300 font-bold text-xs px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0 flex items-center gap-1">
+            {isManualDuration ? (
+              <input
+                type="text"
+                placeholder="例：10:00〜11:30、または 1時間"
+                value={manualDurationText}
+                onChange={(e) => setManualDurationText(e.target.value)}
+                className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 outline-none focus:border-slate-600 transition min-w-[180px]"
+              />
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="bg-white border border-slate-200 rounded-lg px-2 py-0.5 text-xs font-bold text-slate-800 outline-none focus:border-slate-600 transition"
+                />
+                <span className="text-slate-400 font-bold text-xs">〜</span>
+                <input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="bg-white border border-slate-200 rounded-lg px-2 py-0.5 text-xs font-bold text-slate-800 outline-none focus:border-slate-600 transition"
+                />
+                <div className="bg-slate-200 text-slate-800 border border-slate-300 font-bold text-[11px] px-2 py-0.5 rounded-full flex items-center gap-1 ml-1">
                   ⏱️ {calculateDurationMinutes(startTime, endTime)}
                 </div>
               </div>
+            )}
+          </div>
 
-              {/* クイック所要時間ボタン */}
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px] text-slate-400 whitespace-nowrap">クイック設定:</span>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {!isManualDuration && (
+              <div className="flex items-center gap-1">
                 {[
                   { label: "30分", mins: 30 },
                   { label: "45分", mins: 45 },
@@ -548,57 +520,73 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
                     key={item.label}
                     type="button"
                     onClick={() => applyQuickDurationMinutes(item.mins)}
-                    className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-medium transition shadow-2xs"
+                    className="px-2 py-0.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-[11px] font-medium transition"
                   >
                     {item.label}
                   </button>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                if (!isManualDuration) {
+                  setManualDurationText(`${startTime}〜${endTime}`);
+                }
+                setIsManualDuration(!isManualDuration);
+              }}
+              className="text-[11px] text-slate-500 hover:text-slate-800 font-medium flex items-center gap-0.5 ml-1"
+            >
+              <Edit3 className="w-3 h-3" />
+              {isManualDuration ? "時間選択" : "手入力"}
+            </button>
+          </div>
         </div>
 
-        {/* 議題メモ ＆ 添付資料エリア（2カラム） */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-          {/* 左：議題メモ */}
-          <div className="flex flex-col h-full">
-            <div className="mb-2">
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                💡 議題テンプレート
+        {/* ── 議題メモ（大きく確保） ＆ 事前資料（コンパクト）（7:5 または 8:4 グリッド） ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-5 items-stretch">
+          {/* 左：広大な議題メモ（8カラム） */}
+          <div className="lg:col-span-8 flex flex-col h-full space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                📝 議題メモ・共有事項（たっぷり入力可能）
               </label>
-              <select
-                value={selectedTemplateId}
-                onChange={(e) => handleSelectTemplate(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs md:text-sm text-slate-800 font-medium outline-none focus:border-slate-600"
-              >
-                <option value="">― テンプレートを選択 ―</option>
-                {AGENDA_TEMPLATES.map((tmpl) => (
-                  <option key={tmpl.id} value={tmpl.id}>
-                    {tmpl.name}
-                  </option>
-                ))}
-              </select>
+
+              {/* テンプレート選択（インライン右寄せ） */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] text-slate-500 font-medium">💡 テンプレ:</span>
+                <select
+                  value={selectedTemplateId}
+                  onChange={(e) => handleSelectTemplate(e.target.value)}
+                  className="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 font-medium outline-none focus:border-slate-600"
+                >
+                  <option value="">― 選択して自動挿入 ―</option>
+                  {AGENDA_TEMPLATES.map((tmpl) => (
+                    <option key={tmpl.id} value={tmpl.id}>
+                      {tmpl.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            <label className="block text-xs font-bold text-slate-700 mb-1">
-              📝 議題メモ・共有事項
-            </label>
             <textarea
-              rows={5}
-              placeholder="例：&#10;・今月のヒヤリハット報告（転倒リスクの再確認）&#10;・新スタッフ2名の同行スケジュール決定&#10;・送迎ルート見直しの進捗確認"
+              rows={11}
+              placeholder="例：&#10;・今月のヒヤリハット報告（転倒リスクの再確認と今後の手順）&#10;・新スタッフ2名の同行スケジュール決定（同行指導担当者の割り当て）&#10;・送迎ルート見直しの進捗確認（所要時間の短縮案）&#10;・利用者A様の体調変化に伴うケアプラン変更検討"
               value={topics}
               onChange={(e) => setTopics(e.target.value)}
-              className="w-full flex-1 bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:border-slate-600 focus:bg-white transition leading-relaxed font-mono"
+              className="w-full flex-1 min-h-[280px] bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition leading-relaxed font-mono resize-y"
             ></textarea>
           </div>
 
-          {/* 右：事前資料・写真の添付 */}
-          <div className="flex flex-col h-full">
-            <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+          {/* 右：事前資料・写真添付（4カラム、コンパクト表示） */}
+          <div className="lg:col-span-4 flex flex-col h-full">
+            <label className="block text-xs font-bold text-slate-700 mb-2 flex items-center gap-1.5">
               <Paperclip className="w-3.5 h-3.5 text-slate-600" />
-              📎 事前資料・添付ファイル
+              📎 事前資料・添付ファイル（任意）
             </label>
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-h-[280px]">
               <MediaUploader
                 title="事前資料を選択"
                 subtitle="PDF・Word・画像等 (.pdf, .docx, .jpg)"
