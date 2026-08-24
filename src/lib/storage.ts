@@ -2,15 +2,22 @@
 
 const MEETINGS_STORAGE_KEY = "coops_meetings_data_v4";
 const CURRENT_USER_KEY = "coops_current_user_v4";
+const DEPARTMENTS_STORAGE_KEY = "coops_departments_v2";
+const ADMIN_PIN_STORAGE_KEY = "coops_admin_pin_v2";
+const DEFAULT_ADMIN_PIN = "1234";
 
 // Google Apps Script (GSS) Webhook URL
 const GAS_URL = process.env.NEXT_PUBLIC_GAS_WEBHOOK_URL;
 
 export const DEFAULT_DEPARTMENTS = [
-  "訪問介護",
-  "通所介護（デイサービス）",
-  "居宅介護支援",
-  "看護リハビリ",
+  "福禄寿",
+  "晴れる家",
+  "シルバーカレッジ",
+  "コパン",
+  "介護屋本舗",
+  "介護屋本舗流山",
+  "福祉用具",
+  "各委員会",
   "総務・管理本部",
 ];
 
@@ -31,6 +38,47 @@ export const DEFAULT_CURRENT_USER: UserProfile = {
   department: "総務・管理本部",
   role: "admin",
 };
+
+// ==========================================
+// 部署・事業所マスタ管理
+// ==========================================
+export function getDepartments(): string[] {
+  if (typeof window === "undefined") return DEFAULT_DEPARTMENTS;
+  const raw = localStorage.getItem(DEPARTMENTS_STORAGE_KEY);
+  if (!raw) {
+    localStorage.setItem(DEPARTMENTS_STORAGE_KEY, JSON.stringify(DEFAULT_DEPARTMENTS));
+    return DEFAULT_DEPARTMENTS;
+  }
+  try {
+    const list = JSON.parse(raw);
+    return Array.isArray(list) && list.length > 0 ? list : DEFAULT_DEPARTMENTS;
+  } catch {
+    return DEFAULT_DEPARTMENTS;
+  }
+}
+
+export function saveDepartments(departments: string[]): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(DEPARTMENTS_STORAGE_KEY, JSON.stringify(departments));
+  sendToGSS("saveDepartments", { departments });
+}
+
+// ==========================================
+// 管理者PINコード管理
+// ==========================================
+export function getAdminPIN(): string {
+  if (typeof window === "undefined") return DEFAULT_ADMIN_PIN;
+  return localStorage.getItem(ADMIN_PIN_STORAGE_KEY) || DEFAULT_ADMIN_PIN;
+}
+
+export function saveAdminPIN(newPin: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(ADMIN_PIN_STORAGE_KEY, newPin);
+}
+
+export function verifyAdminPIN(inputPin: string): boolean {
+  return inputPin === getAdminPIN();
+}
 
 // ==========================================
 // ユーザー管理
@@ -87,6 +135,11 @@ export async function syncFromGSS(): Promise<MeetingRecord[]> {
       const records: MeetingRecord[] = json.records;
       records.sort((a, b) => (b.meetingDate || "").localeCompare(a.meetingDate || ""));
       saveLocalMeetingRecords(records);
+
+      if (json.departments && Array.isArray(json.departments) && json.departments.length > 0) {
+        localStorage.setItem(DEPARTMENTS_STORAGE_KEY, JSON.stringify(json.departments));
+      }
+
       return records;
     }
   } catch (err) {
@@ -95,7 +148,7 @@ export async function syncFromGSS(): Promise<MeetingRecord[]> {
   return getMeetingRecords();
 }
 
-async function sendToGSS(action: "save" | "delete", payload: any) {
+async function sendToGSS(action: "save" | "delete" | "saveDepartments", payload: any) {
   if (!GAS_URL) return;
   try {
     await fetch(GAS_URL, {
@@ -115,17 +168,14 @@ async function sendToGSS(action: "save" | "delete", payload: any) {
 export function subscribeMeetingRecords(
   callback: (records: MeetingRecord[]) => void
 ): () => void {
-  // 初期値（ローカルから即座に表示）
   callback(getMeetingRecords());
 
-  // GSSが設定されている場合：バックグラウンドで最新データをフェッチして更新
   if (GAS_URL) {
     syncFromGSS().then((latestRecords) => {
       callback(latestRecords);
     });
   }
 
-  // ローカル環境（別タブでのstorage更新を検知）
   const handleStorageChange = (e: StorageEvent) => {
     if (e.key === MEETINGS_STORAGE_KEY) {
       callback(getMeetingRecords());
@@ -151,6 +201,7 @@ export function saveAgendaRecord(params: {
   duration?: string;
   userTopics?: string;
   agenda: AgendaDetails;
+  isConfidential?: boolean;
   createdById?: string;
 }): { success: boolean; data: MeetingRecord; error?: string } {
   const list = getMeetingRecords();
@@ -169,6 +220,7 @@ export function saveAgendaRecord(params: {
         duration: params.duration,
         userTopics: params.userTopics,
         agenda: params.agenda,
+        isConfidential: params.isConfidential !== undefined ? params.isConfidential : list[idx].isConfidential,
         agendaCreatedAt: list[idx].agendaCreatedAt || now,
         updatedAt: now,
         version: (list[idx].version || 1) + 1,
@@ -184,8 +236,6 @@ export function saveAgendaRecord(params: {
   }
 
   saveLocalMeetingRecords(list);
-
-  // GSSへ非同期送信（自動追記・更新）
   sendToGSS("save", { record });
 
   return { success: true, data: record };
@@ -203,6 +253,7 @@ function createNewAgendaRecord(params: any, now: string): MeetingRecord {
     agenda: params.agenda,
     agendaCreatedAt: now,
     status: "agenda_only",
+    isConfidential: !!params.isConfidential,
     version: 1,
     createdAt: now,
     updatedAt: now,
@@ -220,6 +271,7 @@ export function saveMinutesRecord(params: {
   meetingType: string;
   participants: string;
   minutes: MinutesDetails;
+  isConfidential?: boolean;
   createdById?: string;
   version?: number;
 }): { success: boolean; data: MeetingRecord; message: string; error?: string } {
@@ -249,13 +301,12 @@ export function saveMinutesRecord(params: {
         minutes: params.minutes,
         minutesCreatedAt: now,
         status: "minutes_completed",
+        isConfidential: params.isConfidential !== undefined ? params.isConfidential : existing.isConfidential,
         version: (existing.version || 1) + 1,
         updatedAt: now,
       };
       list[idx] = record;
       saveLocalMeetingRecords(list);
-
-      // GSSへ非同期送信
       sendToGSS("save", { record });
 
       return {
@@ -275,6 +326,7 @@ export function saveMinutesRecord(params: {
     minutes: params.minutes,
     minutesCreatedAt: now,
     status: "minutes_completed",
+    isConfidential: !!params.isConfidential,
     version: 1,
     createdAt: now,
     updatedAt: now,
@@ -282,8 +334,6 @@ export function saveMinutesRecord(params: {
   };
   list.unshift(record);
   saveLocalMeetingRecords(list);
-
-  // GSSへ非同期送信
   sendToGSS("save", { record });
 
   return {
@@ -299,7 +349,5 @@ export function saveMinutesRecord(params: {
 export function deleteMeetingRecord(id: string): void {
   const list = getMeetingRecords().filter((r) => r.id !== id);
   saveLocalMeetingRecords(list);
-
-  // GSSから非同期削除
   sendToGSS("delete", { id });
 }

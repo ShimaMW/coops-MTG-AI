@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { UserProfile, AgendaDetails, UploadedFileItem } from "@/lib/types";
 import { DEFAULT_DEPARTMENTS, DEFAULT_MEETING_TYPES, saveAgendaRecord } from "@/lib/storage";
 import { getGoogleCalendarUrl, formatAgendaItemsText } from "@/lib/exportUtils";
@@ -25,6 +25,7 @@ import {
 
 interface AgendaTabProps {
   currentUser: UserProfile;
+  departments: string[];
   onSaved: (createdId?: string) => void;
   onGoToMinutes?: (agendaId: string) => void;
   showToast: (msg: string, type?: "success" | "error") => void;
@@ -80,6 +81,7 @@ const AGENDA_TEMPLATES = [
 
 export const AgendaTab: React.FC<AgendaTabProps> = ({
   currentUser,
+  departments,
   onSaved,
   onGoToMinutes,
   showToast,
@@ -90,10 +92,20 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
   };
 
   const [meetingDate, setMeetingDate] = useState(getTodayStr());
-  const [dept, setDept] = useState(currentUser.department || DEFAULT_DEPARTMENTS[0]);
+  const [dept, setDept] = useState(
+    currentUser.role === "admin" ? departments[0] || "福禄寿" : currentUser.department
+  );
   const [meetingType, setMeetingType] = useState(DEFAULT_MEETING_TYPES[0]);
   const [customMeetingType, setCustomMeetingType] = useState("");
   const [participants, setParticipants] = useState("");
+  const [isConfidential, setIsConfidential] = useState(false);
+
+  // ユーザーの所属部署が変わったら反映
+  useEffect(() => {
+    if (currentUser.role !== "admin" && currentUser.department) {
+      setDept(currentUser.department);
+    }
+  }, [currentUser]);
   
   // 時間設定（シンプル一体型）
   const [startTime, setStartTime] = useState("10:00");
@@ -265,6 +277,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
           ...generatedAgenda,
           attachments: attachmentFiles,
         },
+        isConfidential,
         createdById: currentUser.id,
       });
 
@@ -404,13 +417,16 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">🏢 部署</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">🏢 部署・事業所</label>
             <select
               value={dept}
               onChange={(e) => setDept(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition"
+              disabled={currentUser.role !== "admin"}
+              className={`w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition ${
+                currentUser.role !== "admin" ? "opacity-90 bg-slate-100 cursor-not-allowed" : ""
+              }`}
             >
-              {DEFAULT_DEPARTMENTS.map((d) => (
+              {departments.map((d) => (
                 <option key={d} value={d}>
                   {d}
                 </option>
@@ -418,6 +434,23 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
             </select>
           </div>
         </div>
+
+        {/* 管理者専用：機密設定チェックボックス */}
+        {currentUser.role === "admin" && (
+          <div className="mb-4 p-3 bg-amber-50/70 border border-amber-200 rounded-xl flex items-center justify-between">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isConfidential}
+                onChange={(e) => setIsConfidential(e.target.checked)}
+                className="w-4 h-4 rounded text-slate-700 focus:ring-0 cursor-pointer"
+              />
+              <span className="text-xs font-bold text-amber-900">
+                🔒 管理者（本部）限定の機密アジェンダにする（現場スタッフには非表示）
+              </span>
+            </label>
+          </div>
+        )}
 
         {/* 会議種別 & 参加者 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">

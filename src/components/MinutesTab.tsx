@@ -34,6 +34,7 @@ import {
 interface MinutesTabProps {
   meetingRecords: MeetingRecord[];
   currentUser: UserProfile;
+  departments: string[];
   initialAgendaId?: string | null;
   onSaved: () => void;
   onGoToHistory?: () => void;
@@ -43,6 +44,7 @@ interface MinutesTabProps {
 export const MinutesTab: React.FC<MinutesTabProps> = ({
   meetingRecords,
   currentUser,
+  departments,
   initialAgendaId,
   onSaved,
   onGoToHistory,
@@ -58,10 +60,20 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
   // Step 1: 会議情報
   const [selectedRecordId, setSelectedRecordId] = useState<string>(initialAgendaId || "");
   const [meetingDate, setMeetingDate] = useState(getTodayStr());
-  const [dept, setDept] = useState(currentUser.department || DEFAULT_DEPARTMENTS[0]);
+  const [dept, setDept] = useState(
+    currentUser.role === "admin" ? departments[0] || "福禄寿" : currentUser.department
+  );
   const [meetingType, setMeetingType] = useState(DEFAULT_MEETING_TYPES[0]);
   const [customMeetingType, setCustomMeetingType] = useState("");
   const [participants, setParticipants] = useState("");
+  const [isConfidential, setIsConfidential] = useState(false);
+
+  // ユーザー所属の変更検知
+  useEffect(() => {
+    if (currentUser.role !== "admin" && currentUser.department) {
+      setDept(currentUser.department);
+    }
+  }, [currentUser]);
 
   // Step 2: 音声入力 & 文字起こし
   const [audioBase64, setAudioBase64] = useState<string | null>(null);
@@ -263,6 +275,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
         audioFileName: audioFileName || (attachmentFiles.length > 0 ? `${attachmentFiles.length}件の資料` : undefined),
         attachments: attachmentFiles,
       },
+      isConfidential,
       createdById: currentUser.id,
       version: selectedRec?.version,
     });
@@ -506,13 +519,16 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">🏢 部署</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">🏢 部署・事業所</label>
               <select
                 value={dept}
                 onChange={(e) => setDept(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition"
+                disabled={currentUser.role !== "admin"}
+                className={`w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-slate-600 focus:bg-white transition ${
+                  currentUser.role !== "admin" ? "opacity-90 bg-slate-100 cursor-not-allowed" : ""
+                }`}
               >
-                {DEFAULT_DEPARTMENTS.map((d) => (
+                {departments.map((d) => (
                   <option key={d} value={d}>
                     {d}
                   </option>
@@ -520,6 +536,23 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
               </select>
             </div>
           </div>
+
+          {/* 管理者専用：機密設定チェックボックス */}
+          {currentUser.role === "admin" && (
+            <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isConfidential}
+                  onChange={(e) => setIsConfidential(e.target.checked)}
+                  className="w-4 h-4 rounded text-slate-700 focus:ring-0 cursor-pointer"
+                />
+                <span className="text-xs font-bold text-amber-900">
+                  🔒 管理者（本部）限定の機密議事録にする（現場スタッフには非表示）
+                </span>
+              </label>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
@@ -12,12 +12,14 @@ import {
   saveCurrentUser,
   getMeetingRecords,
   subscribeMeetingRecords,
+  getDepartments,
 } from "@/lib/storage";
 import { UserProfile, MeetingRecord } from "@/lib/types";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>("minutes");
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [departments, setDepartments] = useState<string[]>([]);
   const [meetingRecords, setMeetingRecords] = useState<MeetingRecord[]>([]);
   const [selectedAgendaIdForMinutes, setSelectedAgendaIdForMinutes] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type?: "success" | "error" } | null>(null);
@@ -25,6 +27,8 @@ export default function Home() {
   const reloadData = () => {
     const u = getCurrentUser();
     setCurrentUser(u);
+    const depts = getDepartments();
+    setDepartments(depts);
     const records = getMeetingRecords();
     setMeetingRecords(records);
   };
@@ -32,10 +36,13 @@ export default function Home() {
   useEffect(() => {
     const u = getCurrentUser();
     setCurrentUser(u);
+    const depts = getDepartments();
+    setDepartments(depts);
 
     // リアルタイム同期リスナーの登録
     const unsubscribe = subscribeMeetingRecords((records) => {
       setMeetingRecords(records);
+      setDepartments(getDepartments());
     });
 
     return () => unsubscribe();
@@ -51,7 +58,7 @@ export default function Home() {
   const handleUserChange = (updated: UserProfile) => {
     setCurrentUser(updated);
     saveCurrentUser(updated);
-    showToast(`アカウントを「${updated.name} (${updated.role === "admin" ? "本部" : updated.department})」に切り替えました`);
+    showToast(`アカウントを「${updated.name} (${updated.role === "admin" ? "本部管理者" : updated.department})」に切り替えました`);
   };
 
   const handleGoToMinutesWithAgenda = (agendaId: string) => {
@@ -77,6 +84,11 @@ export default function Home() {
         <Navbar
           currentUser={currentUser}
           onUserChange={handleUserChange}
+          departments={departments}
+          onDepartmentsUpdated={() => {
+            setDepartments(getDepartments());
+            reloadData();
+          }}
         />
 
         {/* タブナビゲーション（3タブ） */}
@@ -93,6 +105,7 @@ export default function Home() {
           {activeTab === "agenda" && (
             <AgendaTab
               currentUser={currentUser}
+              departments={departments}
               onSaved={() => {
                 reloadData();
               }}
@@ -105,6 +118,7 @@ export default function Home() {
             <MinutesTab
               meetingRecords={meetingRecords}
               currentUser={currentUser}
+              departments={departments}
               initialAgendaId={selectedAgendaIdForMinutes}
               onSaved={() => {
                 reloadData();
@@ -121,6 +135,7 @@ export default function Home() {
             <HistoryTab
               meetingRecords={meetingRecords}
               currentUser={currentUser}
+              departments={departments}
               onRefresh={reloadData}
               showToast={showToast}
             />

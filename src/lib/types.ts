@@ -69,6 +69,7 @@ export interface MeetingRecord {
   minutesCreatedAt?: string;
 
   status: "agenda_only" | "minutes_completed";
+  isConfidential?: boolean; // 🔒 管理者（本部）限定フラグ
   version: number;
   createdAt: string;
   updatedAt: string;
