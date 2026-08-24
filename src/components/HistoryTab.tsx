@@ -2,8 +2,22 @@
 
 import React, { useState } from "react";
 import { MeetingRecord, UserProfile, MinutesDetails, AgendaDetails } from "@/lib/types";
-import { DEFAULT_DEPARTMENTS, DEFAULT_MEETING_TYPES, deleteMeetingRecord, saveMinutesRecord, saveAgendaRecord } from "@/lib/storage";
-import { downloadMeetingDocx, getMinutesPlainText, getAgendaPlainText, getChatSummaryText, formatJPDate } from "@/lib/exportUtils";
+import {
+  DEFAULT_DEPARTMENTS,
+  DEFAULT_MEETING_TYPES,
+  deleteMeetingRecord,
+  saveMinutesRecord,
+  saveAgendaRecord,
+  syncFromGSS,
+} from "@/lib/storage";
+import {
+  downloadMeetingDocx,
+  getMinutesPlainText,
+  getAgendaPlainText,
+  getChatSummaryText,
+  formatJPDate,
+  formatAgendaItemsText,
+} from "@/lib/exportUtils";
 import {
   Table,
   Search,
@@ -25,6 +39,7 @@ import {
   Calendar,
   Edit3,
   Save,
+  RefreshCw,
 } from "lucide-react";
 
 interface HistoryTabProps {
@@ -43,6 +58,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
   const [filterDept, setFilterDept] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // モーダル表示用
   const [selectedRecord, setSelectedRecord] = useState<MeetingRecord | null>(null);
@@ -71,6 +87,20 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
     return true;
   });
 
+  // 手動でGSSから最新データを再同期
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    try {
+      await syncFromGSS();
+      onRefresh();
+      showToast("クラウド（GSS）から最新データを取得しました ✓");
+    } catch (err: any) {
+      showToast("同期エラー: " + err.message, "error");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleDelete = (id: string) => {
     if (!confirm("この記録を削除しますか？")) return;
     deleteMeetingRecord(id);
@@ -85,22 +115,54 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
     setIsEditing(false);
     setEditParticipants(rec.participants || "");
     setEditMinutes(rec.minutes ? { ...rec.minutes } : null);
-    setEditAgenda(rec.agenda ? { ...rec.agenda } : null);
+    setEditAgenda(
+      rec.agenda
+        ? {
+            ...rec.agenda,
+            agenda_items: formatAgendaItemsText(rec.agenda.agenda_items),
+          }
+        : null
+    );
   };
 
-  const handleStartEdit = () => {
+  const handleStartEdit = async () => {
     if (!selectedRecord) return;
-    setEditParticipants(selectedRecord.participants || "");
-    setEditMinutes(selectedRecord.minutes ? { ...selectedRecord.minutes } : null);
-    setEditAgenda(selectedRecord.agenda ? { ...selectedRecord.agenda } : null);
-    setIsEditing(true);
+    // 最新データをフェッチしてから編集フォームに適用（競合防止）
+    setIsSyncing(true);
+    try {
+      const latestList = await syncFromGSS();
+      const latest = latestList.find((r) => r.id === selectedRecord.id) || selectedRecord;
+      setSelectedRecord(latest);
+      setEditParticipants(latest.participants || "");
+      setEditMinutes(latest.minutes ? { ...latest.minutes } : null);
+      setEditAgenda(
+        latest.agenda
+          ? {
+              ...latest.agenda,
+              agenda_items: formatAgendaItemsText(latest.agenda.agenda_items),
+            }
+          : null
+      );
+      setIsEditing(true);
+    } catch (err) {
+      setIsEditing(true);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const handleCancelEdit = () => {
     if (!selectedRecord) return;
     setEditParticipants(selectedRecord.participants || "");
     setEditMinutes(selectedRecord.minutes ? { ...selectedRecord.minutes } : null);
-    setEditAgenda(selectedRecord.agenda ? { ...selectedRecord.agenda } : null);
+    setEditAgenda(
+      selectedRecord.agenda
+        ? {
+            ...selectedRecord.agenda,
+            agenda_items: formatAgendaItemsText(selectedRecord.agenda.agenda_items),
+          }
+        : null
+    );
     setIsEditing(false);
   };
 
@@ -138,7 +200,10 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
           participants: editParticipants,
           duration: selectedRecord.duration,
           userTopics: selectedRecord.userTopics,
-          agenda: editAgenda,
+          agenda: {
+            ...editAgenda,
+            agenda_items: formatAgendaItemsText(editAgenda.agenda_items),
+          },
           createdById: selectedRecord.createdById,
         });
 
@@ -160,7 +225,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* フィルタ & 検索バー */}
+      {/* フィルタ & 検索バー & GSS再同期ボタン */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex flex-wrap items-center gap-3 no-print">
         <div className="flex-1 min-w-[200px] relative">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -200,6 +265,18 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
             </option>
           ))}
         </select>
+
+        {/* GSSクラウド最新データ再同期ボタン */}
+        <button
+          type="button"
+          onClick={handleManualSync}
+          disabled={isSyncing}
+          className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition border border-slate-300"
+          title="Googleスプレッドシートから最新データを再取得"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin text-slate-800" : "text-slate-600"}`} />
+          <span>{isSyncing ? "同期中..." : "クラウド最新化"}</span>
+        </button>
       </div>
 
       {/* ログ一覧テーブル */}
@@ -608,7 +685,9 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                       📋 各議題の詳細
                     </div>
                     {!isEditing ? (
-                      <p className="whitespace-pre-wrap font-mono text-slate-700 leading-relaxed">{selectedRecord.agenda?.agenda_items}</p>
+                      <p className="whitespace-pre-wrap font-mono text-slate-700 leading-relaxed">
+                        {formatAgendaItemsText(selectedRecord.agenda?.agenda_items)}
+                      </p>
                     ) : (
                       <textarea
                         rows={8}
@@ -648,7 +727,8 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                 {!isEditing ? (
                   <button
                     onClick={handleStartEdit}
-                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm"
+                    disabled={isSyncing}
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm"
                   >
                     <Edit3 className="w-3.5 h-3.5" /> この内容を直接編集する
                   </button>

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { UserProfile, AgendaDetails, UploadedFileItem } from "@/lib/types";
 import { DEFAULT_DEPARTMENTS, DEFAULT_MEETING_TYPES, saveAgendaRecord } from "@/lib/storage";
-import { getGoogleCalendarUrl } from "@/lib/exportUtils";
+import { getGoogleCalendarUrl, formatAgendaItemsText } from "@/lib/exportUtils";
 import { FeatureHelpAccordion } from "./FeatureHelpAccordion";
 import { MediaUploader } from "./AudioUploader";
 import {
@@ -225,6 +225,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
       const data = await res.json();
       setGeneratedAgenda({
         ...data,
+        agenda_items: formatAgendaItemsText(data.agenda_items),
         attachments: attachmentFiles,
       });
       showToast("アジェンダを生成しました ✨");

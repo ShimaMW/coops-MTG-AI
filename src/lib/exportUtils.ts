@@ -10,6 +10,21 @@ export function formatJPDate(dateStr: string): string {
 }
 
 // ==========================================
+// アジェンダ議題の自動改行・階層整形フォーマッター
+// ==========================================
+export function formatAgendaItemsText(text?: string): string {
+  if (!text) return "";
+  let formatted = text;
+  // 確認ポイント・注意点・AIアドバイスの前に改行と「・」を付与
+  formatted = formatted.replace(/([。、\s]*)確認ポイント[：:]\s*/g, "\n・確認ポイント：");
+  formatted = formatted.replace(/([。、\s]*)注意点[：:]\s*/g, "\n・注意点：");
+  formatted = formatted.replace(/([。、\s]*)AIアドバイス[：:]\s*/g, "\n・AIアドバイス：");
+  // 各議題の開始（【報告】や数字付き見出し）の前に空行改行を付与
+  formatted = formatted.replace(/([。、\s]*)(【(?:報告|決定|議論|共有|協議|連絡|審議|その他)】|\d+\.\s*【)/g, "\n\n$2");
+  return formatted.trim();
+}
+
+// ==========================================
 // Googleカレンダー 登録URL生成
 // ==========================================
 export function getGoogleCalendarUrl(params: {
