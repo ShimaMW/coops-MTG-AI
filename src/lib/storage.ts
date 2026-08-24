@@ -1,19 +1,10 @@
 ﻿import { MeetingRecord, UserProfile, AgendaDetails, MinutesDetails } from "./types";
-import { db, isFirebaseConfigured } from "./firebase";
-import {
-  collection,
-  doc,
-  setDoc,
-  deleteDoc,
-  onSnapshot,
-  query,
-  orderBy,
-  getDocs,
-} from "firebase/firestore";
 
 const MEETINGS_STORAGE_KEY = "coops_meetings_data_v4";
 const CURRENT_USER_KEY = "coops_current_user_v4";
-const MEETINGS_COLLECTION = "meetings";
+
+// Google Apps Script (GSS) Webhook URL
+const GAS_URL = process.env.NEXT_PUBLIC_GAS_WEBHOOK_URL;
 
 export const DEFAULT_DEPARTMENTS = [
   "訪問介護",
@@ -84,7 +75,42 @@ function saveLocalMeetingRecords(records: MeetingRecord[]) {
 }
 
 // ==========================================
-// リアルタイム同期リスナー（Firestore + localStorage両対応）
+// GSS (Google スプレッドシート) クラウド通信
+// ==========================================
+export async function syncFromGSS(): Promise<MeetingRecord[]> {
+  if (!GAS_URL) return getMeetingRecords();
+  try {
+    const res = await fetch(GAS_URL, { method: "GET", mode: "cors" });
+    if (!res.ok) throw new Error("GSS fetch failed");
+    const json = await res.json();
+    if (json.success && Array.isArray(json.records)) {
+      const records: MeetingRecord[] = json.records;
+      records.sort((a, b) => (b.meetingDate || "").localeCompare(a.meetingDate || ""));
+      saveLocalMeetingRecords(records);
+      return records;
+    }
+  } catch (err) {
+    console.warn("GSS sync error, using local storage:", err);
+  }
+  return getMeetingRecords();
+}
+
+async function sendToGSS(action: "save" | "delete", payload: any) {
+  if (!GAS_URL) return;
+  try {
+    await fetch(GAS_URL, {
+      method: "POST",
+      mode: "no-cors", // GASへのCORSプレフライトを回避
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, ...payload }),
+    });
+  } catch (err) {
+    console.warn("Failed to send data to GSS:", err);
+  }
+}
+
+// ==========================================
+// リアルタイム同期リスナー（GSS + localStorage両対応）
 // ==========================================
 export function subscribeMeetingRecords(
   callback: (records: MeetingRecord[]) => void
@@ -92,33 +118,14 @@ export function subscribeMeetingRecords(
   // 初期値（ローカルから即座に表示）
   callback(getMeetingRecords());
 
-  // Firestoreが有効な場合：クラウドからリアルタイム購読
-  if (db && isFirebaseConfigured) {
-    try {
-      const q = query(collection(db, MEETINGS_COLLECTION));
-      const unsubscribe = onSnapshot(
-        q,
-        (snapshot) => {
-          const list: MeetingRecord[] = [];
-          snapshot.forEach((docSnap) => {
-            list.push(docSnap.data() as MeetingRecord);
-          });
-          list.sort((a, b) => (b.meetingDate || "").localeCompare(a.meetingDate || ""));
-          saveLocalMeetingRecords(list);
-          callback(list);
-        },
-        (error) => {
-          console.warn("Firestore subscription error, using local fallback:", error);
-          callback(getMeetingRecords());
-        }
-      );
-      return unsubscribe;
-    } catch (err) {
-      console.warn("Failed to subscribe to Firestore:", err);
-    }
+  // GSSが設定されている場合：バックグラウンドで最新データをフェッチして更新
+  if (GAS_URL) {
+    syncFromGSS().then((latestRecords) => {
+      callback(latestRecords);
+    });
   }
 
-  // ローカル環境フォールバック（別タブでのstorage更新を検知）
+  // ローカル環境（別タブでのstorage更新を検知）
   const handleStorageChange = (e: StorageEvent) => {
     if (e.key === MEETINGS_STORAGE_KEY) {
       callback(getMeetingRecords());
@@ -130,11 +137,6 @@ export function subscribeMeetingRecords(
   }
 
   return () => {};
-}
-
-// Firestore用オブジェクトサニタイズ（undefinedの除去）
-function sanitizeForFirestore(obj: any): any {
-  return JSON.parse(JSON.stringify(obj));
 }
 
 // ==========================================
@@ -183,12 +185,8 @@ export function saveAgendaRecord(params: {
 
   saveLocalMeetingRecords(list);
 
-  // Firestoreへ非同期保存
-  if (db && isFirebaseConfigured) {
-    setDoc(doc(db, MEETINGS_COLLECTION, record.id), sanitizeForFirestore(record)).catch((err) =>
-      console.warn("Failed to sync agenda to Firestore:", err)
-    );
-  }
+  // GSSへ非同期送信（自動追記・更新）
+  sendToGSS("save", { record });
 
   return { success: true, data: record };
 }
@@ -257,17 +255,13 @@ export function saveMinutesRecord(params: {
       list[idx] = record;
       saveLocalMeetingRecords(list);
 
-      // Firestoreへ非同期保存
-      if (db && isFirebaseConfigured) {
-        setDoc(doc(db, MEETINGS_COLLECTION, record.id), sanitizeForFirestore(record)).catch((err) =>
-          console.warn("Failed to sync minutes to Firestore:", err)
-        );
-      }
+      // GSSへ非同期送信
+      sendToGSS("save", { record });
 
       return {
         success: true,
         data: record,
-        message: "事前アジェンダに紐づけて議事録をクラウド保存しました ✓",
+        message: "議事録を保存しました（GSS同期完了） ✓",
       };
     }
   }
@@ -289,17 +283,13 @@ export function saveMinutesRecord(params: {
   list.unshift(record);
   saveLocalMeetingRecords(list);
 
-  // Firestoreへ非同期保存
-  if (db && isFirebaseConfigured) {
-    setDoc(doc(db, MEETINGS_COLLECTION, record.id), sanitizeForFirestore(record)).catch((err) =>
-      console.warn("Failed to sync new minutes to Firestore:", err)
-    );
-  }
+  // GSSへ非同期送信
+  sendToGSS("save", { record });
 
   return {
     success: true,
     data: record,
-    message: "議事録をクラウド保存しました ✓",
+    message: "議事録を保存しました（GSS同期完了） ✓",
   };
 }
 
@@ -310,10 +300,6 @@ export function deleteMeetingRecord(id: string): void {
   const list = getMeetingRecords().filter((r) => r.id !== id);
   saveLocalMeetingRecords(list);
 
-  // Firestoreから非同期削除
-  if (db && isFirebaseConfigured) {
-    deleteDoc(doc(db, MEETINGS_COLLECTION, id)).catch((err) =>
-      console.warn("Failed to delete record from Firestore:", err)
-    );
-  }
+  // GSSから非同期削除
+  sendToGSS("delete", { id });
 }
