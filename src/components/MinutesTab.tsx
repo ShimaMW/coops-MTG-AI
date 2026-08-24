@@ -60,17 +60,14 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
   // Step 1: 会議情報
   const [selectedRecordId, setSelectedRecordId] = useState<string>(initialAgendaId || "");
   const [meetingDate, setMeetingDate] = useState(getTodayStr());
-  const [dept, setDept] = useState(
-    currentUser.role === "admin" ? departments[0] || "福禄寿" : currentUser.department
-  );
+  const [dept, setDept] = useState(currentUser.department || departments[0] || "福禄寿");
   const [meetingType, setMeetingType] = useState(DEFAULT_MEETING_TYPES[0]);
   const [customMeetingType, setCustomMeetingType] = useState("");
   const [participants, setParticipants] = useState("");
-  const [isConfidential, setIsConfidential] = useState(false);
 
   // ユーザー所属の変更検知
   useEffect(() => {
-    if (currentUser.role !== "admin" && currentUser.department) {
+    if (currentUser.department) {
       setDept(currentUser.department);
     }
   }, [currentUser]);
@@ -275,7 +272,6 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
         audioFileName: audioFileName || (attachmentFiles.length > 0 ? `${attachmentFiles.length}件の資料` : undefined),
         attachments: attachmentFiles,
       },
-      isConfidential,
       createdById: currentUser.id,
       version: selectedRec?.version,
     });

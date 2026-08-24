@@ -92,17 +92,14 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
   };
 
   const [meetingDate, setMeetingDate] = useState(getTodayStr());
-  const [dept, setDept] = useState(
-    currentUser.role === "admin" ? departments[0] || "福禄寿" : currentUser.department
-  );
+  const [dept, setDept] = useState(currentUser.department || departments[0] || "福禄寿");
   const [meetingType, setMeetingType] = useState(DEFAULT_MEETING_TYPES[0]);
   const [customMeetingType, setCustomMeetingType] = useState("");
   const [participants, setParticipants] = useState("");
-  const [isConfidential, setIsConfidential] = useState(false);
 
-  // ユーザーの所属部署が変わったら反映
+  // ユーザーの所属部署が変わったら即座に反映
   useEffect(() => {
-    if (currentUser.role !== "admin" && currentUser.department) {
+    if (currentUser.department) {
       setDept(currentUser.department);
     }
   }, [currentUser]);
@@ -277,7 +274,6 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
           ...generatedAgenda,
           attachments: attachmentFiles,
         },
-        isConfidential,
         createdById: currentUser.id,
       });
 
