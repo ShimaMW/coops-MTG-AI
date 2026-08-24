@@ -370,8 +370,9 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
   const focusSuggestions = [
     "決定事項と担当者を重点的にまとめる",
     "各スタッフの具体的な発言や意見の対立点を残す",
-    "理念（利用者本位・安全管理）の実践観点を強調する",
+    "予定アジェンダに縛られず、実際の議論の展開・流れを重視する",
     "次回の宿題・ToDoを箇条書きで明確にする",
+    "突発的な重要議論も独立した議題として詳しく残す",
   ];
 
   const agendaRecords = meetingRecords.filter((r) => r.agenda);
