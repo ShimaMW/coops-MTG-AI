@@ -491,40 +491,40 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
           ) : (
             /* 一体型タイムピッカー */
             <div className="space-y-2">
-              <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5">
-                <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50 border border-slate-200 rounded-xl p-3 sm:px-4 sm:py-2.5 gap-2.5">
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-slate-500 font-medium">開始</span>
+                    <span className="text-xs text-slate-500 font-medium whitespace-nowrap flex-shrink-0">開始</span>
                     <input
                       type="time"
                       value={startTime}
                       onChange={(e) => setStartTime(e.target.value)}
-                      className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-sm font-bold text-slate-800 outline-none focus:border-slate-600 transition"
+                      className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs sm:text-sm font-bold text-slate-800 outline-none focus:border-slate-600 transition"
                     />
                   </div>
 
                   <span className="text-slate-400 font-bold">〜</span>
 
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-slate-500 font-medium">終了</span>
+                    <span className="text-xs text-slate-500 font-medium whitespace-nowrap flex-shrink-0">終了</span>
                     <input
                       type="time"
                       value={endTime}
                       onChange={(e) => setEndTime(e.target.value)}
-                      className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-sm font-bold text-slate-800 outline-none focus:border-slate-600 transition"
+                      className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs sm:text-sm font-bold text-slate-800 outline-none focus:border-slate-600 transition"
                     />
                   </div>
                 </div>
 
                 {/* 自動計算された所要時間バッジ */}
-                <div className="bg-slate-200 text-slate-800 border border-slate-300 font-bold text-xs px-3 py-1 rounded-full">
+                <div className="self-start sm:self-auto bg-slate-200 text-slate-800 border border-slate-300 font-bold text-xs px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0 flex items-center gap-1">
                   ⏱️ {calculateDurationMinutes(startTime, endTime)}
                 </div>
               </div>
 
               {/* クイック所要時間ボタン */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] text-slate-400">クイック設定:</span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] text-slate-400 whitespace-nowrap">クイック設定:</span>
                 {[
                   { label: "30分", mins: 30 },
                   { label: "45分", mins: 45 },
