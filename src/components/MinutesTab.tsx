@@ -415,13 +415,13 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* ── 4ステップ インジケーター（ダーク背景に適した高コントラスト表示） ── */}
+      {/* ── 4ステップ インジケーター（レスポンシブ対応・横スクロール防止） ── */}
       <div className="flex items-center justify-between w-full max-w-2xl mx-auto mb-6 no-print px-1 sm:px-2">
         {[
-          { num: 1, label: "会議情報" },
-          { num: 2, label: "音声・文字起こし" },
-          { num: 3, label: "資料写真・指示" },
-          { num: 4, label: "議事録完成" },
+          { num: 1, label: "会議情報", shortLabel: "基本" },
+          { num: 2, label: "音声・文字起こし", shortLabel: "音声" },
+          { num: 3, label: "資料写真・指示", shortLabel: "資料" },
+          { num: 4, label: "議事録完成", shortLabel: "完成" },
         ].map((s, idx) => (
           <React.Fragment key={s.num}>
             <button
@@ -429,10 +429,10 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
               onClick={() => {
                 if (s.num < step) setStep(s.num as any);
               }}
-              className="flex items-center gap-1.5 sm:gap-2 cursor-pointer group focus:outline-none"
+              className="flex items-center gap-1 sm:gap-2 cursor-pointer group focus:outline-none flex-shrink-0"
             >
               <div
-                className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[11px] sm:text-xs font-bold transition-all ${
+                className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[11px] sm:text-xs font-bold transition-all flex-shrink-0 ${
                   step === s.num
                     ? "bg-white text-slate-900 shadow-md scale-105"
                     : step > s.num
@@ -451,12 +451,13 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
                     : "text-slate-400"
                 }`}
               >
-                {s.label}
+                <span className="hidden sm:inline">{s.label}</span>
+                <span className="sm:hidden">{s.shortLabel}</span>
               </span>
             </button>
             {idx < 3 && (
               <div
-                className={`flex-1 h-0.5 mx-1.5 sm:mx-3 transition-all ${
+                className={`flex-1 h-0.5 mx-1 sm:mx-3 transition-all min-w-[8px] ${
                   step > idx + 1 ? "bg-white/40" : "bg-white/15"
                 }`}
               />

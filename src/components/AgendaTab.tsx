@@ -482,7 +482,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
                 placeholder="例：10:00〜11:30、または 1時間"
                 value={manualDurationText}
                 onChange={(e) => setManualDurationText(e.target.value)}
-                className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 outline-none focus:border-slate-600 transition min-w-[180px]"
+                className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 outline-none focus:border-slate-600 transition min-w-[160px]"
               />
             ) : (
               <div className="flex items-center gap-1.5">
@@ -499,16 +499,13 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
                   onChange={(e) => setEndTime(e.target.value)}
                   className="bg-white border border-slate-200 rounded-lg px-2 py-0.5 text-xs font-bold text-slate-800 outline-none focus:border-slate-600 transition"
                 />
-                <div className="bg-slate-200 text-slate-800 border border-slate-300 font-bold text-[11px] px-2 py-0.5 rounded-full flex items-center gap-1 ml-1">
-                  ⏱️ {calculateDurationMinutes(startTime, endTime)}
-                </div>
               </div>
             )}
           </div>
 
           <div className="flex items-center gap-1.5 flex-wrap">
             {!isManualDuration && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 flex-wrap">
                 {[
                   { label: "30分", mins: 30 },
                   { label: "45分", mins: 45 },
@@ -548,20 +545,22 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-5 items-stretch">
           {/* 左：広大な議題メモ（8カラム） */}
           <div className="lg:col-span-8 flex flex-col h-full space-y-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
               <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                 📝 議題メモ・共有事項
               </label>
 
-              {/* テンプレート選択（インライン右寄せ） */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] text-slate-500 font-medium">💡 テンプレ:</span>
+              {/* テンプレート選択（スマホでは全幅、PCでは右寄せ、突き抜け防止） */}
+              <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                <span className="text-[11px] text-slate-600 font-bold whitespace-nowrap flex-shrink-0">
+                  💡 テンプレ:
+                </span>
                 <select
                   value={selectedTemplateId}
                   onChange={(e) => handleSelectTemplate(e.target.value)}
-                  className="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 font-medium outline-none focus:border-slate-600"
+                  className="flex-1 sm:flex-initial bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 font-medium outline-none focus:border-slate-600 w-full sm:w-auto max-w-full sm:max-w-[220px] truncate"
                 >
-                  <option value="">― 選択して自動挿入 ―</option>
+                  <option value="">― テンプレートを選択 ―</option>
                   {AGENDA_TEMPLATES.map((tmpl) => (
                     <option key={tmpl.id} value={tmpl.id}>
                       {tmpl.name}
