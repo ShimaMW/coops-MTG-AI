@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { UploadCloud, FileAudio, Image as ImageIcon, FileText, CheckCircle2, X, FolderOpen, FileCode, Plus } from "lucide-react";
+import { UploadCloud, FileAudio, Image as ImageIcon, FileText, CheckCircle2, X, FolderOpen, FileCode, Plus, Loader2 } from "lucide-react";
 import { UploadedFileItem } from "@/lib/types";
+import { uploadLargeAudioDirectly } from "@/lib/geminiFileUpload";
 
 interface MediaUploaderProps {
   title?: string;
@@ -15,6 +16,7 @@ interface MediaUploaderProps {
   onFileLoaded?: (data: {
     audioBase64?: string;
     audioMimeType?: string;
+    audioFileUri?: string; // Google Gemini File API URI
     imageBase64?: string;
     imageMimeType?: string;
     textContent?: string;
@@ -27,7 +29,7 @@ interface MediaUploaderProps {
 
 export const MediaUploader: React.FC<MediaUploaderProps> = ({
   title = "事前資料を選択",
-  subtitle = "PDF・Word・ホワイトボード写真・企画メモ等 (.pdf, .jpg, .txt)",
+  subtitle = "PDF・Word・画像等 (.pdf, .docx, .jpg)",
   accept = "audio/*,.m4a,.mp3,.wav,.aac,.webm,image/*,.jpg,.jpeg,.png,.webp,application/pdf,.pdf,text/plain,.txt,.md,.csv,.doc,.docx",
   allowMultiple = true,
   initialFiles = [],
@@ -37,6 +39,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
 }) => {
   const [fileList, setFileList] = useState<UploadedFileItem[]>(initialFiles);
   const [isDragging, setIsDragging] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ percent: number; label: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -105,7 +108,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
     });
   };
 
-  const processFile = async (file: File): Promise<UploadedFileItem> => {
+  const processFile = async (file: File): Promise<UploadedFileItem & { fileUri?: string }> => {
     const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
     const mime = file.type || "";
     const id = "file_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6);
@@ -162,18 +165,42 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
       });
     }
 
-    // 4. 音声
+    // 4. 音声（大容量対応：1時間・2時間の音声でもGoogle File APIへ直接送信）
     if (mime.startsWith("audio/") || /\.(m4a|mp3|wav|aac|webm|ogg)$/i.test(file.name)) {
+      const audioMime = mime || (file.name.endsWith(".m4a") ? "audio/m4a" : "audio/mp3");
       const sizeMBNum = file.size / (1024 * 1024);
-      if (sizeMBNum > 3.8) {
-        alert(`⚠️ 音声ファイル「${file.name}」のサイズ（${sizeMBNum.toFixed(1)}MB）が大きいため、通信制限（約4.5MB）に引っかかる可能性があります。\nエラーが発生した場合は、短い録音ファイルにするか、メモ機能のご利用をお試しください。`);
+
+      // 2MB以上の場合は Google Gemini File API に直接アップロード（Vercel 4.5MB制限を完全回避）
+      if (sizeMBNum >= 2.0) {
+        setUploadProgress({ percent: 10, label: "Google Cloudへ直接送信中..." });
+        try {
+          const result = await uploadLargeAudioDirectly(file, file.name, audioMime, (info) => {
+            setUploadProgress({
+              percent: info.percent,
+              label: info.percent >= 100 ? "送信完了 ✓" : `Google Cloudへ送信中... ${info.percent}%`,
+            });
+          });
+
+          return {
+            id,
+            name: file.name,
+            size: `${sizeMB} MB`,
+            type: "audio",
+            fileUri: result.fileUri,
+            mimeType: result.mimeType,
+          };
+        } catch (err: any) {
+          console.error("Direct upload failed, fallback to base64:", err);
+        } finally {
+          setTimeout(() => setUploadProgress(null), 1500);
+        }
       }
 
+      // 2MB未満は Base64 エンコード
       return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = (e) => {
           const base64 = (e.target?.result as string).split(",")[1];
-          const audioMime = mime || (file.name.endsWith(".m4a") ? "audio/m4a" : "audio/mp3");
           resolve({
             id,
             name: file.name,
@@ -208,7 +235,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
     if (!files || files.length === 0) return;
 
     const fileArray = Array.from(files);
-    const newItems: UploadedFileItem[] = [];
+    const newItems: (UploadedFileItem & { fileUri?: string })[] = [];
 
     for (const f of fileArray) {
       const item = await processFile(f);
@@ -228,6 +255,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
       onFileLoaded({
         audioBase64: first.type === "audio" ? first.base64 : undefined,
         audioMimeType: first.type === "audio" ? first.mimeType : undefined,
+        audioFileUri: first.type === "audio" ? first.fileUri : undefined,
         imageBase64: first.type === "image" || first.type === "pdf" ? first.base64 : undefined,
         imageMimeType: first.type === "image" || first.type === "pdf" ? first.mimeType : undefined,
         textContent: first.textContent,
@@ -292,6 +320,25 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
         className="hidden"
       />
 
+      {/* 大容量音声アップロード中のプログレスバー */}
+      {uploadProgress && (
+        <div className="mb-3 p-3 bg-white border border-slate-200 rounded-xl shadow-sm text-left">
+          <div className="flex items-center justify-between text-xs font-bold text-slate-800 mb-1.5">
+            <span className="flex items-center gap-1.5">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-700" />
+              {uploadProgress.label}
+            </span>
+            <span>{uploadProgress.percent}%</span>
+          </div>
+          <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+            <div
+              className="bg-[#283136] h-2 rounded-full transition-all duration-300"
+              style={{ width: `${uploadProgress.percent}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       {fileList.length > 0 ? (
         <div className="w-full flex flex-col gap-2">
           {/* ヘッダー情報 */}
@@ -342,7 +389,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                       {file.name}
                     </div>
                     <div className="text-[10px] text-slate-500">
-                      {file.size} ・ {file.type === "pdf" ? "PDF" : file.type === "image" ? "画像OCR" : file.type === "audio" ? "音声" : "テキスト"}
+                      {file.size} ・ {file.type === "pdf" ? "PDF" : file.type === "image" ? "画像" : file.type === "audio" ? "音声（クラウド連携）" : "テキスト"}
                     </div>
                   </div>
                 </div>

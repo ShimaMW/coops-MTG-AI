@@ -144,6 +144,7 @@ export async function generateMinutesAI(params: {
   inputText?: string;
   audioBase64?: string;
   audioMimeType?: string;
+  audioFileUri?: string; // Google Gemini File API経由の大容量音声URI
   files?: { base64: string; mimeType: string; fileName?: string }[];
   // 後方互換性
   imageBase64?: string;
@@ -215,8 +216,18 @@ ${params.inputText || "（テキスト入力なし：添付音声/画像より�
 
   const contents: any[] = [];
 
-  // 音声データ
-  if (params.audioBase64 && params.audioMimeType) {
+  // 大容量音声（Google Gemini File API直接アップロードされたURI）
+  if (params.audioFileUri && params.audioMimeType) {
+    contents.push({
+      fileData: {
+        fileUri: params.audioFileUri,
+        mimeType: params.audioMimeType,
+      },
+    });
+  }
+
+  // 音声データ（Base64）
+  if (params.audioBase64 && params.audioMimeType && !params.audioFileUri) {
     contents.push({
       inlineData: {
         data: params.audioBase64,

@@ -15,12 +15,13 @@ export async function POST(req: NextRequest) {
       inputText,
       audioBase64,
       audioMimeType,
+      audioFileUri,
       imageBase64,
       imageMimeType,
       files,
     } = body;
 
-    if (!inputText && !audioBase64 && !imageBase64 && (!files || files.length === 0)) {
+    if (!inputText && !audioBase64 && !audioFileUri && !imageBase64 && (!files || files.length === 0)) {
       return NextResponse.json(
         { error: "テキストメモ、音声データ、または写真/画像を入力してください。" },
         { status: 400 }
@@ -36,6 +37,7 @@ export async function POST(req: NextRequest) {
       inputText,
       audioBase64,
       audioMimeType,
+      audioFileUri,
       imageBase64,
       imageMimeType,
       files,

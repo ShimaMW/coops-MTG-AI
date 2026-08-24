@@ -65,6 +65,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
   // Step 2: 音声入力 & 文字起こし
   const [audioBase64, setAudioBase64] = useState<string | null>(null);
   const [audioMimeType, setAudioMimeType] = useState<string | null>(null);
+  const [audioFileUri, setAudioFileUri] = useState<string | null>(null);
   const [audioFileName, setAudioFileName] = useState<string | null>(null);
   const [transcriptPreview, setTranscriptPreview] = useState<string>("");
 
@@ -188,6 +189,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
           inputText: combinedInputText,
           audioBase64,
           audioMimeType,
+          audioFileUri,
           files: mediaFiles,
         }),
       });
@@ -589,15 +591,23 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
                   accept="audio/*,.m4a,.mp3,.wav,.aac,.webm"
                   allowMultiple={false}
                   onFileLoaded={(data) => {
-                    if (data.audioBase64) {
+                    if (data.audioFileUri) {
+                      setAudioFileUri(data.audioFileUri);
+                      setAudioMimeType(data.audioMimeType || "audio/m4a");
+                      setAudioFileName(data.fileName);
+                      setAudioBase64(null);
+                      showToast(`大容量音声「${data.fileName}」を直接連携しました ✓`);
+                    } else if (data.audioBase64) {
                       setAudioBase64(data.audioBase64);
                       setAudioMimeType(data.audioMimeType || "audio/m4a");
                       setAudioFileName(data.fileName);
+                      setAudioFileUri(null);
                       showToast(`音声「${data.fileName}」をセットしました ✓`);
                     }
                   }}
                   onClear={() => {
                     setAudioBase64(null);
+                    setAudioFileUri(null);
                     setAudioMimeType(null);
                     setAudioFileName(null);
                   }}
@@ -763,7 +773,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             <button
               type="button"
               onClick={handleGenerate}
-              disabled={isLoading || (!audioBase64 && !transcriptPreview && !inputText && attachmentFiles.length === 0)}
+              disabled={isLoading || (!audioBase64 && !audioFileUri && !transcriptPreview && !inputText && attachmentFiles.length === 0)}
               className="px-8 py-3 bg-[#283136] hover:bg-[#1c2226] disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-md flex items-center gap-2 transition"
             >
               {isLoading ? (
