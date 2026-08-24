@@ -1,19 +1,28 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Mic, Square, AlertCircle, Sparkles, Volume2 } from "lucide-react";
+import { Mic, Square, AlertCircle, Sparkles, CheckCircle2, RotateCcw, Trash2, Volume2 } from "lucide-react";
 
 interface AudioRecorderProps {
+  initialAudioBase64?: string | null;
+  initialAudioMimeType?: string | null;
   onRecordingComplete: (base64: string, mimeType: string, transcriptText?: string) => void;
+  onClearAudio?: () => void;
   onLiveTranscript?: (text: string) => void;
 }
 
 export const AudioRecorder: React.FC<AudioRecorderProps> = ({
+  initialAudioBase64,
+  initialAudioMimeType,
   onRecordingComplete,
+  onClearAudio,
   onLiveTranscript,
 }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [duration, setDuration] = useState(0);
+  const [recordedDuration, setRecordedDuration] = useState<number | null>(null);
+  const [hasAudio, setHasAudio] = useState(!!initialAudioBase64);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [liveText, setLiveText] = useState("");
   const [audioLevel, setAudioLevel] = useState(0);
   const [isSupported, setIsSupported] = useState(true);
@@ -33,6 +42,29 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
       setIsSupported(hasMedia);
     }
   }, []);
+
+  useEffect(() => {
+    if (initialAudioBase64) {
+      setHasAudio(true);
+      const mime = initialAudioMimeType || "audio/webm";
+      try {
+        const byteCharacters = atob(initialAudioBase64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: mime });
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
+      } catch (e) {
+        console.warn("Audio Base64 parse error:", e);
+      }
+    } else {
+      setHasAudio(false);
+      setAudioUrl(null);
+    }
+  }, [initialAudioBase64, initialAudioMimeType]);
 
   // Screen Wake Lock（スリープ防止）
   const requestWakeLock = async () => {
@@ -63,6 +95,9 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
       audioChunksRef.current = [];
       setLiveText("");
       setDuration(0);
+      setRecordedDuration(null);
+      setHasAudio(false);
+      setAudioUrl(null);
 
       // MediaRecorder 設定
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
@@ -82,6 +117,10 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
 
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        const url = URL.createObjectURL(audioBlob);
+        setAudioUrl(url);
+        setHasAudio(true);
+
         const reader = new FileReader();
         reader.onloadend = () => {
           const base64 = (reader.result as string).split(",")[1];
@@ -144,7 +183,7 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
         recognitionRef.current = recognition;
       }
 
-      mediaRecorder.start(1000); // 1秒ごとにチャンク
+      mediaRecorder.start(1000);
       setIsRecording(true);
       await requestWakeLock();
 
@@ -153,7 +192,7 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
       }, 1000);
     } catch (err: any) {
       console.error("Mic Access Error:", err);
-      alert("マイクへのアクセスが拒否されたか、利用できません。設定をご確認ください。");
+      alert("マイクへのアクセスが拒否されたか、利用できません。ブラウザの設定をご確認ください。");
     }
   };
 
@@ -173,9 +212,18 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
     }
+    setRecordedDuration(duration);
     setIsRecording(false);
     setAudioLevel(0);
     await releaseWakeLock();
+  };
+
+  const handleClear = () => {
+    setHasAudio(false);
+    setAudioUrl(null);
+    setRecordedDuration(null);
+    setLiveText("");
+    if (onClearAudio) onClearAudio();
   };
 
   const formatTime = (secs: number) => {
@@ -193,23 +241,68 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
     );
   }
 
+  // 録音データ保持時のUI（視覚的にセットされていることが明確にわかる）
+  if (hasAudio && !isRecording) {
+    return (
+      <div className="border-2 border-emerald-300 bg-emerald-50/60 rounded-2xl p-4 transition-all text-center h-full min-h-[190px] flex flex-col justify-between items-center shadow-xs">
+        <div className="w-full flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <span>録音データを保持中 ✓</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleClear}
+            className="text-[11px] text-slate-400 hover:text-red-600 flex items-center gap-1 transition"
+            title="録音を解除"
+          >
+            <Trash2 className="w-3.5 h-3.5" /> 解除
+          </button>
+        </div>
+
+        <div className="my-1.5 w-full flex flex-col items-center gap-2">
+          <div className="text-xs font-bold text-slate-800">
+            🎙️ マイク録音音声（セット完了）
+            {recordedDuration ? ` (${formatTime(recordedDuration)})` : ""}
+          </div>
+
+          {/* 音声試聴プレイヤー */}
+          {audioUrl && (
+            <audio controls src={audioUrl} className="w-full max-w-[260px] h-8 outline-none" />
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 pt-1">
+          <button
+            type="button"
+            onClick={startRecording}
+            className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold text-xs rounded-xl shadow-2xs flex items-center gap-1.5 transition"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-slate-600" />
+            再録音する
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
-      className={`border-2 rounded-2xl p-5 transition-all text-center h-full min-h-[190px] flex flex-col justify-center items-center ${
+      className={`border-2 rounded-2xl p-4 transition-all text-center h-full min-h-[190px] flex flex-col justify-center items-center ${
         isRecording
           ? "border-red-500 bg-red-50/50 shadow-md ring-4 ring-red-100"
-          : "border-dashed border-slate-300 hover:border-clover-500 bg-slate-50/70"
+          : "border-dashed border-slate-300 hover:border-slate-400 bg-slate-50/70"
       }`}
     >
-      <div className="flex flex-col items-center justify-center gap-3">
+      <div className="flex flex-col items-center justify-center gap-2.5">
         {/* アイコン & アニメーション */}
         <div className="relative">
           <div
-            className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-              isRecording ? "bg-red-500 text-white animate-pulse" : "bg-clover-100 text-clover-700"
+            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+              isRecording ? "bg-red-500 text-white animate-pulse" : "bg-slate-200 text-slate-700"
             }`}
           >
-            {isRecording ? <Square className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+            {isRecording ? <Square className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
           </div>
           {isRecording && (
             <span className="absolute -top-1 -right-1 flex h-4 w-4">
@@ -224,20 +317,20 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
         {/* 状態 & 時間 */}
         <div>
           <div className="text-sm font-bold text-slate-800">
-            {isRecording ? "会議を録音中（スリープ防止中）" : "ブラウザで直接録音"}
+            {isRecording ? "会議を録音中（スリープ防止中）" : "マイクで直接録音"}
           </div>
           <div className="text-xs text-slate-500 mt-0.5">
             {isRecording ? (
               <span className="text-red-600 font-bold text-base font-mono">{formatTime(duration)}</span>
             ) : (
-              "タップして録音を開始します（スマホのスリープも自動防止）"
+              "タップして録音を開始（スリープ自動防止）"
             )}
           </div>
         </div>
 
         {/* 音声レベルバー */}
         {isRecording && (
-          <div className="w-48 bg-slate-200 h-1.5 rounded-full overflow-hidden">
+          <div className="w-40 bg-slate-200 h-1.5 rounded-full overflow-hidden">
             <div
               className="bg-red-500 h-full transition-all duration-75"
               style={{ width: `${audioLevel}%` }}
@@ -249,15 +342,15 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
         <button
           type="button"
           onClick={isRecording ? stopRecording : startRecording}
-          className={`px-6 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center gap-2 transition-all shadow-sm ${
+          className={`px-5 py-2 rounded-xl font-bold text-xs md:text-sm flex items-center gap-2 transition-all shadow-sm ${
             isRecording
               ? "bg-red-600 hover:bg-red-700 text-white"
-              : "bg-clover-700 hover:bg-clover-800 text-white"
+              : "bg-[#283136] hover:bg-[#1c2226] text-white"
           }`}
         >
           {isRecording ? (
             <>
-              <Square className="w-4 h-4" /> 録音を停止して議事録へ
+              <Square className="w-4 h-4" /> 録音を停止して確定
             </>
           ) : (
             <>
@@ -268,12 +361,12 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
 
         {/* リアルタイム文字起こしプレビュー */}
         {isRecording && liveText && (
-          <div className="w-full mt-3 p-3 bg-white border border-red-200 rounded-xl text-left">
+          <div className="w-full mt-2 p-2.5 bg-white border border-red-200 rounded-xl text-left">
             <div className="text-[11px] font-bold text-slate-500 mb-1 flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-emerald-600" />
               リアルタイム文字起こしプレビュー:
             </div>
-            <p className="text-xs text-slate-700 max-h-24 overflow-y-auto leading-relaxed whitespace-pre-wrap">
+            <p className="text-xs text-slate-700 max-h-20 overflow-y-auto leading-relaxed whitespace-pre-wrap">
               {liveText}
             </p>
           </div>

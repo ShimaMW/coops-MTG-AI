@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useRef, useEffect } from "react";
 import { UploadCloud, FileAudio, Image as ImageIcon, FileText, CheckCircle2, X, FolderOpen, FileCode, Plus, Loader2 } from "lucide-react";
@@ -43,7 +43,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (initialFiles && initialFiles.length > 0) {
+    if (initialFiles) {
       setFileList(initialFiles);
     }
   }, [initialFiles]);

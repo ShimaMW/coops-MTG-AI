@@ -609,26 +609,34 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
                   subtitle="録音ファイル (.m4a, .mp3, .wav, .aac)"
                   accept="audio/*,.m4a,.mp3,.wav,.aac,.webm"
                   allowMultiple={false}
+                  initialFiles={
+                    audioFileName && audioFileName !== "ブラウザ録音データ.webm"
+                      ? [
+                          {
+                            id: "uploaded_voice",
+                            name: audioFileName,
+                            size: "セット済",
+                            type: "audio",
+                            base64: audioBase64 || undefined,
+                            mimeType: audioMimeType || "audio/m4a",
+                          },
+                        ]
+                      : []
+                  }
                   onFileLoaded={(data) => {
-                    if (data.audioFileUri) {
-                      setAudioFileUri(data.audioFileUri);
-                      setAudioMimeType(data.audioMimeType || "audio/m4a");
-                      setAudioFileName(data.fileName);
-                      setAudioBase64(null);
-                      showToast(`大容量音声「${data.fileName}」を直接連携しました ✓`);
-                    } else if (data.audioBase64) {
+                    if (data.audioBase64) {
                       setAudioBase64(data.audioBase64);
                       setAudioMimeType(data.audioMimeType || "audio/m4a");
                       setAudioFileName(data.fileName);
-                      setAudioFileUri(null);
                       showToast(`音声「${data.fileName}」をセットしました ✓`);
                     }
                   }}
                   onClear={() => {
-                    setAudioBase64(null);
-                    setAudioFileUri(null);
-                    setAudioMimeType(null);
-                    setAudioFileName(null);
+                    if (audioFileName !== "ブラウザ録音データ.webm") {
+                      setAudioBase64(null);
+                      setAudioMimeType(null);
+                      setAudioFileName(null);
+                    }
                   }}
                 />
               </div>
@@ -640,6 +648,8 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
               </label>
               <div className="flex-1 flex flex-col">
                 <AudioRecorder
+                  initialAudioBase64={audioFileName === "ブラウザ録音データ.webm" ? audioBase64 : null}
+                  initialAudioMimeType={audioMimeType}
                   onRecordingComplete={(base64, mime, liveTranscript) => {
                     setAudioBase64(base64);
                     setAudioMimeType(mime);
@@ -650,6 +660,13 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
                       );
                     }
                     showToast("録音データをセットしました ✓");
+                  }}
+                  onClearAudio={() => {
+                    if (audioFileName === "ブラウザ録音データ.webm") {
+                      setAudioBase64(null);
+                      setAudioMimeType(null);
+                      setAudioFileName(null);
+                    }
                   }}
                 />
               </div>
