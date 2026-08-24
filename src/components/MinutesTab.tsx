@@ -7,7 +7,7 @@ import {
   DEFAULT_MEETING_TYPES,
   saveMinutesRecord,
 } from "@/lib/storage";
-import { downloadMeetingDocx, getMinutesPlainText, getChatSummaryText, formatJPDate } from "@/lib/exportUtils";
+import { downloadMeetingDocx, getMinutesPlainText, getChatSummaryText, formatJPDate, formatSlashDate } from "@/lib/exportUtils";
 import { FeatureHelpAccordion } from "./FeatureHelpAccordion";
 import { AudioRecorder } from "./AudioRecorder";
 import { MediaUploader } from "./AudioUploader";
@@ -121,7 +121,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
     if (!id) return;
     const rec = meetingRecords.find((r) => r.id === id);
     if (rec) {
-      setMeetingDate(rec.meetingDate);
+      setMeetingDate(formatSlashDate(rec.meetingDate));
       setDept(rec.dept);
       if (DEFAULT_MEETING_TYPES.includes(rec.meetingType)) {
         setMeetingType(rec.meetingType);
@@ -460,7 +460,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
                 <option value="">― アジェンダを選択（新規の場合は未選択） ―</option>
                 {agendaRecords.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.meetingDate} | {a.dept} | {a.meetingType}
+                    {formatSlashDate(a.meetingDate)} ｜ {a.dept} ｜ {a.meetingType}
                     {a.status === "minutes_completed" ? " [議事録あり]" : " [アジェンダのみ]"}
                   </option>
                 ))}

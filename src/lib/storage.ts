@@ -1,4 +1,5 @@
-﻿import { MeetingRecord, UserProfile, AgendaDetails, MinutesDetails } from "./types";
+import { MeetingRecord, UserProfile, AgendaDetails, MinutesDetails } from "./types";
+import { formatSlashDate } from "./exportUtils";
 
 const MEETINGS_STORAGE_KEY = "coops_meetings_data_v4";
 const CURRENT_USER_KEY = "coops_current_user_v4";
@@ -132,7 +133,10 @@ export async function syncFromGSS(): Promise<MeetingRecord[]> {
     if (!res.ok) throw new Error("GSS fetch failed");
     const json = await res.json();
     if (json.success && Array.isArray(json.records)) {
-      const records: MeetingRecord[] = json.records;
+      const records: MeetingRecord[] = json.records.map((r: any) => ({
+        ...r,
+        meetingDate: formatSlashDate(r.meetingDate),
+      }));
       records.sort((a, b) => (b.meetingDate || "").localeCompare(a.meetingDate || ""));
       saveLocalMeetingRecords(records);
 
@@ -206,6 +210,7 @@ export function saveAgendaRecord(params: {
 }): { success: boolean; data: MeetingRecord; error?: string } {
   const list = getMeetingRecords();
   const now = new Date().toISOString();
+  const normalizedDate = formatSlashDate(params.meetingDate);
   let record: MeetingRecord;
 
   if (params.id) {
@@ -213,7 +218,7 @@ export function saveAgendaRecord(params: {
     if (idx >= 0) {
       record = {
         ...list[idx],
-        meetingDate: params.meetingDate,
+        meetingDate: normalizedDate,
         dept: params.dept,
         meetingType: params.meetingType,
         participants: params.participants,
@@ -227,11 +232,11 @@ export function saveAgendaRecord(params: {
       };
       list[idx] = record;
     } else {
-      record = createNewAgendaRecord(params, now);
+      record = createNewAgendaRecord({ ...params, meetingDate: normalizedDate }, now);
       list.unshift(record);
     }
   } else {
-    record = createNewAgendaRecord(params, now);
+    record = createNewAgendaRecord({ ...params, meetingDate: normalizedDate }, now);
     list.unshift(record);
   }
 
@@ -244,7 +249,7 @@ export function saveAgendaRecord(params: {
 function createNewAgendaRecord(params: any, now: string): MeetingRecord {
   return {
     id: "rec_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
-    meetingDate: params.meetingDate,
+    meetingDate: formatSlashDate(params.meetingDate),
     dept: params.dept,
     meetingType: params.meetingType,
     participants: params.participants,
@@ -277,6 +282,7 @@ export function saveMinutesRecord(params: {
 }): { success: boolean; data: MeetingRecord; message: string; error?: string } {
   const list = getMeetingRecords();
   const now = new Date().toISOString();
+  const normalizedDate = formatSlashDate(params.meetingDate);
   let record: MeetingRecord;
 
   if (params.recordId) {
@@ -294,7 +300,7 @@ export function saveMinutesRecord(params: {
 
       record = {
         ...existing,
-        meetingDate: params.meetingDate,
+        meetingDate: normalizedDate,
         dept: params.dept,
         meetingType: params.meetingType,
         participants: params.participants,
@@ -319,7 +325,7 @@ export function saveMinutesRecord(params: {
 
   record = {
     id: "rec_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
-    meetingDate: params.meetingDate,
+    meetingDate: normalizedDate,
     dept: params.dept,
     meetingType: params.meetingType,
     participants: params.participants,

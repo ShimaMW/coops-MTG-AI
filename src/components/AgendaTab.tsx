@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { UserProfile, AgendaDetails, UploadedFileItem } from "@/lib/types";
 import { DEFAULT_DEPARTMENTS, DEFAULT_MEETING_TYPES, saveAgendaRecord } from "@/lib/storage";
-import { getGoogleCalendarUrl, formatAgendaItemsText } from "@/lib/exportUtils";
+import { getGoogleCalendarUrl, formatAgendaItemsText, formatSlashDate } from "@/lib/exportUtils";
 import { FeatureHelpAccordion } from "./FeatureHelpAccordion";
 import { MediaUploader } from "./AudioUploader";
 import {
@@ -87,8 +87,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
   showToast,
 }) => {
   const getTodayStr = () => {
-    const d = new Date();
-    return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+    return formatSlashDate();
   };
 
   const [meetingDate, setMeetingDate] = useState(getTodayStr());
@@ -291,9 +290,10 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
 
   const handleCopy = () => {
     if (!generatedAgenda) return;
+    const cleanDate = formatSlashDate(meetingDate);
     const text = [
       `【COOPs 会議アジェンダ】`,
-      `会議日: ${meetingDate}`,
+      `会議日: ${cleanDate}`,
       `部署: ${dept} / 種別: ${effectiveMeetingType}`,
       `参加者: ${participants || "（未指定）"}`,
       `所要時間: ${currentDurationLabel || "未定"}`,
@@ -319,9 +319,10 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
   // Googleカレンダー登録リンク
   const handleOpenGoogleCalendar = () => {
     if (!generatedAgenda) return;
+    const cleanDate = formatSlashDate(meetingDate);
     const url = getGoogleCalendarUrl({
       title: `${dept} ${effectiveMeetingType}`,
-      meetingDate,
+      meetingDate: cleanDate,
       startTime: !isManualDuration ? startTime : undefined,
       endTime: !isManualDuration ? endTime : undefined,
       duration: currentDurationLabel,

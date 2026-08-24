@@ -1,8 +1,40 @@
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from "docx";
 import { MeetingRecord } from "./types";
 
+// ==========================================
+// 日付フォーマッター（常に YYYY/M/D 形式へ正規化）
+// ==========================================
+export function formatSlashDate(dateStr?: string): string {
+  if (!dateStr) {
+    const d = new Date();
+    return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+  }
+  const clean = String(dateStr).trim();
+  // 既に YYYY/M/D や YYYY-MM-DD 等の形式の場合
+  const match = clean.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  if (match) {
+    return `${match[1]}/${parseInt(match[2], 10)}/${parseInt(match[3], 10)}`;
+  }
+  // Dateパース可能な文字列（Mon Aug 24 2026 GMT... 等）
+  const d = new Date(clean);
+  if (!isNaN(d.getTime())) {
+    return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+  }
+  return dateStr;
+}
+
 export function formatJPDate(dateStr: string): string {
   if (!dateStr) return "";
+  const slash = formatSlashDate(dateStr);
+  const parts = slash.split("/");
+  if (parts.length === 3) {
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const day = parseInt(parts[2], 10);
+    const d = new Date(y, m - 1, day);
+    const days = ["日", "月", "火", "水", "木", "金", "土"];
+    return `${y}年${m}月${day}日（${days[d.getDay()]}）`;
+  }
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
   const days = ["日", "月", "火", "水", "木", "金", "土"];
