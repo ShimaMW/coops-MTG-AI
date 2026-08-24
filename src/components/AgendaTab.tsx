@@ -550,7 +550,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
           <div className="lg:col-span-8 flex flex-col h-full space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                📝 議題メモ・共有事項（たっぷり入力可能）
+                📝 議題メモ・共有事項
               </label>
 
               {/* テンプレート選択（インライン右寄せ） */}

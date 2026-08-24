@@ -787,7 +787,7 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
             {/* 追加テキストメモ（8カラム、広々確保） */}
             <div className="lg:col-span-8 flex flex-col h-full space-y-1.5">
               <label className="block text-xs font-bold text-slate-800">
-                📝 追加テキストメモ・補足発言（たっぷり入力可能）
+                📝 追加テキストメモ・補足発言
               </label>
               <textarea
                 rows={9}
