@@ -28,18 +28,68 @@ export function formatAgendaItemsText(text?: string): string {
 // Googleカレンダー 登録URL生成
 // ==========================================
 export function getGoogleCalendarUrl(params: {
-  title: string;
+  title?: string;
   meetingDate: string;
+  startTime?: string;
+  endTime?: string;
   duration?: string;
   dept: string;
   meetingType: string;
   details: string;
 }): string {
-  const d = params.meetingDate.replace(/-/g, "").replace(/\//g, "");
-  const dateStr = d.length === 8 ? `${d}T100000/${d}T110000` : `${d}/${d}`;
+  // 日付の正規化（YYYYMMDD形式へ）
+  let year = "";
+  let month = "";
+  let day = "";
+
+  const dateParts = params.meetingDate.replace(/-/g, "/").split("/");
+  if (dateParts.length === 3) {
+    year = dateParts[0].padStart(4, "0");
+    month = dateParts[1].padStart(2, "0");
+    day = dateParts[2].padStart(2, "0");
+  } else {
+    const d = new Date();
+    year = String(d.getFullYear());
+    month = String(d.getMonth() + 1).padStart(2, "0");
+    day = String(d.getDate()).padStart(2, "0");
+  }
+
+  const ymd = `${year}${month}${day}`;
+
+  // 開始時刻・終了時刻の取得
+  let startH = "10";
+  let startM = "00";
+  let endH = "11";
+  let endM = "00";
+
+  if (params.startTime && params.startTime.includes(":")) {
+    const [sh, sm] = params.startTime.split(":");
+    startH = sh.padStart(2, "0");
+    startM = sm.padStart(2, "0");
+  }
+
+  if (params.endTime && params.endTime.includes(":")) {
+    const [eh, em] = params.endTime.split(":");
+    endH = eh.padStart(2, "0");
+    endM = em.padStart(2, "0");
+  } else if (params.duration && params.duration.includes("〜")) {
+    // duration文字列から「10:00〜11:30」などを抽出
+    const match = params.duration.match(/(\d{1,2}):(\d{2})\s*〜\s*(\d{1,2}):(\d{2})/);
+    if (match) {
+      startH = match[1].padStart(2, "0");
+      startM = match[2].padStart(2, "0");
+      endH = match[3].padStart(2, "0");
+      endM = match[4].padStart(2, "0");
+    }
+  }
+
+  const startIso = `${ymd}T${startH}${startM}00`;
+  const endIso = `${ymd}T${endH}${endM}00`;
+  const datesParam = `${startIso}/${endIso}`;
+
   const text = encodeURIComponent(`【${params.dept}】${params.meetingType}`);
   const details = encodeURIComponent(params.details);
-  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${dateStr}&details=${details}`;
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${datesParam}&details=${details}`;
 }
 
 // ==========================================

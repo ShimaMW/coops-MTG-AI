@@ -322,6 +322,8 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
     const url = getGoogleCalendarUrl({
       title: `${dept} ${effectiveMeetingType}`,
       meetingDate,
+      startTime: !isManualDuration ? startTime : undefined,
+      endTime: !isManualDuration ? endTime : undefined,
       duration: currentDurationLabel,
       dept,
       meetingType: effectiveMeetingType,

@@ -17,6 +17,7 @@ import {
   getChatSummaryText,
   formatJPDate,
   formatAgendaItemsText,
+  getGoogleCalendarUrl,
 } from "@/lib/exportUtils";
 import {
   Table,
@@ -37,6 +38,7 @@ import {
   ListTodo,
   MessageSquare,
   Calendar,
+  CalendarPlus,
   Edit3,
   Save,
   RefreshCw,
@@ -769,6 +771,24 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                     className="px-3.5 py-2 bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm"
                   >
                     <Share2 className="w-3.5 h-3.5" /> LINE WORKS用コピー
+                  </button>
+                )}
+                {modalTab === "agenda" && selectedRecord.agenda && !isEditing && (
+                  <button
+                    onClick={() => {
+                      const url = getGoogleCalendarUrl({
+                        title: `${selectedRecord.dept} ${selectedRecord.meetingType}`,
+                        meetingDate: selectedRecord.meetingDate,
+                        duration: selectedRecord.duration,
+                        dept: selectedRecord.dept,
+                        meetingType: selectedRecord.meetingType,
+                        details: `【目的】\n${selectedRecord.agenda?.purpose || ""}\n\n【各議題】\n${selectedRecord.agenda?.agenda_items || ""}`,
+                      });
+                      window.open(url, "_blank");
+                    }}
+                    className="px-3.5 py-2 bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm"
+                  >
+                    <CalendarPlus className="w-3.5 h-3.5" /> Googleカレンダーに登録
                   </button>
                 )}
                 <button
