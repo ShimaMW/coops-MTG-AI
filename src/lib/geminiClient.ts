@@ -1,4 +1,4 @@
-﻿import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 
 const MODEL_NAME = process.env.NEXT_PUBLIC_GEMINI_MODEL || "gemini-2.5-flash";
 
@@ -25,12 +25,24 @@ export async function generateMinutesAIClientSide(params: {
   imageBase64?: string;
   imageMimeType?: string;
 }) {
-  const apiKey =
+  let apiKey =
     process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
     process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    throw new Error("NEXT_PUBLIC_GEMINI_API_KEY が設定されていません。");
+    try {
+      const res = await fetch("/api/auth/gemini-key");
+      if (res.ok) {
+        const data = await res.json();
+        apiKey = data.apiKey;
+      }
+    } catch (e) {
+      console.warn("Failed to fetch API key from /api/auth/gemini-key", e);
+    }
+  }
+
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY が取得できませんでした。");
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
