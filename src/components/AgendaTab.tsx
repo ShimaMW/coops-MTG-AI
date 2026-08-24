@@ -218,8 +218,19 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
       });
 
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "生成に失敗しました");
+        const resText = await res.text();
+        let errorMsg = "生成に失敗しました";
+        try {
+          const errObj = JSON.parse(resText);
+          errorMsg = errObj.error || errorMsg;
+        } catch {
+          if (res.status === 413 || resText.includes("Request Entity") || resText.includes("Payload Too Large")) {
+            errorMsg = "添付された資料のサイズが通信上限（約4.5MB）を超えています。資料数を減らすか、軽量なファイルをお試しください。";
+          } else if (resText) {
+            errorMsg = resText.slice(0, 120);
+          }
+        }
+        throw new Error(errorMsg);
       }
 
       const data = await res.json();

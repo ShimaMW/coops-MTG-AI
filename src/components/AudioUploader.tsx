@@ -45,14 +45,88 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
     }
   }, [initialFiles]);
 
-  const processFile = (file: File): Promise<UploadedFileItem> => {
+  // 画像の自動リサイズ＆圧縮（最大幅/高1600px、JPEG 80%に圧縮して通信容量を1/10〜1/20に削減）
+  const compressImage = (file: File): Promise<{ base64: string; mimeType: string; previewUrl: string; sizeMB: string }> => {
     return new Promise((resolve) => {
-      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
-      const mime = file.type || "";
-      const id = "file_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 1600;
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.8);
+            const base64 = compressedDataUrl.split(",")[1];
+            const approxBytes = (base64.length * 3) / 4;
+            const sizeMB = (approxBytes / (1024 * 1024)).toFixed(2);
+            resolve({
+              base64,
+              mimeType: "image/jpeg",
+              previewUrl: compressedDataUrl,
+              sizeMB: `${sizeMB} MB`,
+            });
+            return;
+          }
+          const full = e.target?.result as string;
+          resolve({
+            base64: full.split(",")[1],
+            mimeType: file.type || "image/jpeg",
+            previewUrl: URL.createObjectURL(file),
+            sizeMB: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+          });
+        };
+        img.onerror = () => {
+          const full = e.target?.result as string;
+          resolve({
+            base64: full.split(",")[1],
+            mimeType: file.type || "image/jpeg",
+            previewUrl: URL.createObjectURL(file),
+            sizeMB: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+          });
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
 
-      // 1. PDF
-      if (mime === "application/pdf" || /\.pdf$/i.test(file.name)) {
+  const processFile = async (file: File): Promise<UploadedFileItem> => {
+    const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+    const mime = file.type || "";
+    const id = "file_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6);
+
+    // 1. 画像（自動圧縮）
+    if (mime.startsWith("image/") || /\.(jpg|jpeg|png|webp|heic)$/i.test(file.name)) {
+      const compressed = await compressImage(file);
+      return {
+        id,
+        name: file.name,
+        size: compressed.sizeMB,
+        type: "image",
+        base64: compressed.base64,
+        mimeType: compressed.mimeType,
+        previewUrl: compressed.previewUrl,
+      };
+    }
+
+    // 2. PDF
+    if (mime === "application/pdf" || /\.pdf$/i.test(file.name)) {
+      return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = (e) => {
           const full = e.target?.result as string;
@@ -67,32 +141,12 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
           });
         };
         reader.readAsDataURL(file);
-        return;
-      }
+      });
+    }
 
-      // 2. 画像
-      if (mime.startsWith("image/") || /\.(jpg|jpeg|png|webp|heic)$/i.test(file.name)) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const full = e.target?.result as string;
-          const base64 = full.split(",")[1];
-          const previewUrl = URL.createObjectURL(file);
-          resolve({
-            id,
-            name: file.name,
-            size: `${sizeMB} MB`,
-            type: "image",
-            base64,
-            mimeType: mime || "image/jpeg",
-            previewUrl,
-          });
-        };
-        reader.readAsDataURL(file);
-        return;
-      }
-
-      // 3. テキスト・CSV・Markdown・Word等のテキスト抽出
-      if (mime.startsWith("text/") || /\.(txt|md|csv)$/i.test(file.name)) {
+    // 3. テキスト・CSV・Markdown・Word等のテキスト抽出
+    if (mime.startsWith("text/") || /\.(txt|md|csv)$/i.test(file.name)) {
+      return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = (e) => {
           const text = e.target?.result as string;
@@ -105,11 +159,17 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
           });
         };
         reader.readAsText(file);
-        return;
+      });
+    }
+
+    // 4. 音声
+    if (mime.startsWith("audio/") || /\.(m4a|mp3|wav|aac|webm|ogg)$/i.test(file.name)) {
+      const sizeMBNum = file.size / (1024 * 1024);
+      if (sizeMBNum > 3.8) {
+        alert(`⚠️ 音声ファイル「${file.name}」のサイズ（${sizeMBNum.toFixed(1)}MB）が大きいため、通信制限（約4.5MB）に引っかかる可能性があります。\nエラーが発生した場合は、短い録音ファイルにするか、メモ機能のご利用をお試しください。`);
       }
 
-      // 4. 音声
-      if (mime.startsWith("audio/") || /\.(m4a|mp3|wav|aac|webm|ogg)$/i.test(file.name)) {
+      return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = (e) => {
           const base64 = (e.target?.result as string).split(",")[1];
@@ -124,10 +184,11 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
           });
         };
         reader.readAsDataURL(file);
-        return;
-      }
+      });
+    }
 
-      // その他汎用
+    // その他汎用
+    return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const text = e.target?.result as string;

@@ -193,8 +193,19 @@ export const MinutesTab: React.FC<MinutesTabProps> = ({
       });
 
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "議事録の生成に失敗しました");
+        const resText = await res.text();
+        let errorMsg = "議事録の生成に失敗しました";
+        try {
+          const errObj = JSON.parse(resText);
+          errorMsg = errObj.error || errorMsg;
+        } catch {
+          if (res.status === 413 || resText.includes("Request Entity") || resText.includes("Payload Too Large")) {
+            errorMsg = "送信データ（音声・画像）のサイズが通信上限（約4.5MB）を超えています。短い録音にするか、文字起こし・メモをご活用ください。";
+          } else if (resText) {
+            errorMsg = resText.slice(0, 120);
+          }
+        }
+        throw new Error(errorMsg);
       }
 
       const data = await res.json();
