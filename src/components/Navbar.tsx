@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { UserProfile, UserRole } from "@/lib/types";
@@ -32,7 +32,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         ...currentUser,
         department: "総務・管理本部",
         role: "admin",
-        name: "島田（本部）",
+        name: "本部管理者",
       });
       setIsPinModalOpen(true);
     } else {

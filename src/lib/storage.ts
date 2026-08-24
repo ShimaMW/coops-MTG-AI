@@ -35,7 +35,7 @@ export const DEFAULT_MEETING_TYPES = [
 export const DEFAULT_CURRENT_USER: UserProfile = {
   id: "u_admin",
   email: "admin@coops.care",
-  name: "島田（本部）",
+  name: "本部管理者",
   department: "総務・管理本部",
   role: "admin",
 };

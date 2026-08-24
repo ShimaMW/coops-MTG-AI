@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { Lock, X, KeyRound, AlertCircle, ShieldCheck } from "lucide-react";
@@ -32,7 +32,7 @@ export const PinAuthModal: React.FC<PinAuthModalProps> = ({
       onSuccess();
       onClose();
     } else {
-      setError("PINコードが正しくありません。（初期値: 1234）");
+      setError("PINコードが正しくありません。");
       setPin("");
     }
   };
@@ -71,7 +71,7 @@ export const PinAuthModal: React.FC<PinAuthModalProps> = ({
                 type="password"
                 maxLength={8}
                 autoFocus
-                placeholder="PINコードを入力（初期値: 1234）"
+                placeholder="PINコードを入力"
                 value={pin}
                 onChange={(e) => {
                   setPin(e.target.value);
