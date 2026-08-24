@@ -43,6 +43,7 @@ import {
   Save,
   RefreshCw,
 } from "lucide-react";
+import { FeatureHelpAccordion } from "./FeatureHelpAccordion";
 
 interface HistoryTabProps {
   meetingRecords: MeetingRecord[];
@@ -226,7 +227,26 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* ログ一覧 使い方アコーディオン */}
+      <FeatureHelpAccordion
+        title="💡 会議録一覧（ログ）の使い方・3つの活用ポイント"
+        items={[
+          {
+            label: "① 閲覧・再編集",
+            text: "一覧の行をクリックすると詳細モーダルが開き、アジェンダ・議事録の全内容を確認できます。「編集」ボタンを押すと内容の修正や追記・再保存が可能です。",
+          },
+          {
+            label: "② スピーディな共有・出力",
+            text: "「LINE WORKS用コピー」で要約を即座にチャット送信でき、「Word保存」で公式文書（.docx）をダウンロードできます。「Googleカレンダーに登録」も可能です。",
+          },
+          {
+            label: "③ リアルタイム同期",
+            text: "右上の「最新の情報に更新」ボタンを押すと、スプレッドシートや他スタッフの更新内容が即座に同期されます。",
+          },
+        ]}
+      />
+
       {/* フィルタ & 検索バー & 再同期ボタン */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex flex-wrap items-center gap-3 no-print">
         <div className="flex-1 min-w-[200px] relative">
